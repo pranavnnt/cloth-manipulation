@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf_conversions
   message_generation
+  moveit_core
+  moveit_ros_planning_interface
   pluginlib
   realtime_tools
   roscpp
@@ -62,6 +64,8 @@ catkin_package(
     joint_limits_interface
     tf
     tf_conversions
+    moveit_core
+    moveit_ros_planning_interface
     message_runtime
     pluginlib
     realtime_tools
@@ -76,6 +80,8 @@ add_library(franka_controllers
   src/joint_position_example_controller.cpp
 )
 
+add_executable(joint_space_planner src/moveit_joint_space_planner.cpp)
+
 add_dependencies(franka_controllers
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
@@ -84,8 +90,14 @@ add_dependencies(franka_controllers
   ${PROJECT_NAME}_gencfg
 )
 
+add_dependencies(joint_space_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(franka_controllers PUBLIC
   ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(joint_space_planner
   ${catkin_LIBRARIES}
 )
 
@@ -95,6 +107,10 @@ target_include_directories(franka_controllers SYSTEM PUBLIC
 )
 target_include_directories(franka_controllers PUBLIC
   include
+)
+
+target_include_directories(joint_space_planner PUBLIC
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Installation
