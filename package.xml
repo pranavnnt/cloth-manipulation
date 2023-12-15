@@ -31,8 +31,21 @@
 
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>
+  <exec_depend>panda_moveit_config</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>rospy</exec_depend>
+
+  <build_depend>moveit_core</build_depend>
+  <build_depend>moveit_ros_planning</build_depend>
+  <build_depend>moveit_ros_planning_interface</build_depend>
+  <build_depend>moveit_visual_tools</build_depend>
+
+  <exec_depend>moveit_core</exec_depend>
+  <exec_depend>moveit_ros_planning</exec_depend>
+  <exec_depend>moveit_ros_planning_interface</exec_depend>
+  <exec_depend>moveit_visual_tools</exec_depend>
+
+  <exec_depend>xacro</exec_depend>
 
   <export>
     <controller_interface plugin="${prefix}/franka_controllers_plugin.xml" />
