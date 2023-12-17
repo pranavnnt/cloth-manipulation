@@ -83,7 +83,7 @@ catkin_package(
 )
 
 include_directories(${catkin_INCLUDE_DIRS})
-# include_directories(include)
+include_directories(include)
 
 add_executable(joint_space_planner src/joint_space_planner.cpp)
 target_link_libraries(joint_space_planner ${catkin_LIBRARIES})

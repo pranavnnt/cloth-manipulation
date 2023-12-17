@@ -78,7 +78,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
 
             filtered_cloud->header.frame_id = "panda_link0";    
             base_pcl_pub.publish(filtered_cloud);
-            ROS_INFO("Publish success!!");
+            // ROS_INFO("Publish success!!");
         }
         else
         {
