@@ -14,8 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   hardware_interface
   joint_limits_interface
-  tf
-  tf_conversions
   message_generation
   moveit_core
   moveit_ros_planning
@@ -64,8 +62,6 @@ catkin_package(
     geometry_msgs
     hardware_interface
     joint_limits_interface
-    tf
-    tf_conversions
     message_runtime
     moveit_core
     moveit_ros_planning_interface
