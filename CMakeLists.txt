@@ -52,7 +52,6 @@ list_insert_in_workspace_order(catkin_INCLUDE_DIRS ${Franka_INCLUDE_DIRS} ${catk
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES franka_controllers
   CATKIN_DEPENDS
     controller_interface
     dynamic_reconfigure
@@ -75,41 +74,9 @@ catkin_package(
 
 include_directories(${catkin_INCLUDE_DIRS})
 
-add_library(franka_controllers
-  src/cartesian_pose_example_controller.cpp
-  src/joint_position_example_controller.cpp
-)
-
 add_executable(joint_space_planner src/joint_space_planner.cpp)
 target_link_libraries(joint_space_planner ${catkin_LIBRARIES})
 
-add_dependencies(franka_controllers
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
-  ${PROJECT_NAME}_generate_messages_cpp
-  ${PROJECT_NAME}_gencpp
-  ${PROJECT_NAME}_gencfg
-)
-
-target_link_libraries(franka_controllers PUBLIC
-  ${Franka_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
-
-target_include_directories(franka_controllers SYSTEM PUBLIC
-  ${EIGEN3_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
-)
-target_include_directories(franka_controllers PUBLIC
-  include
-)
-
-## Installation
-install(TARGETS franka_controllers
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 install(TARGETS joint_space_planner
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
@@ -120,9 +87,6 @@ install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 install(DIRECTORY config
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-install(FILES franka_controllers_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 catkin_install_python(

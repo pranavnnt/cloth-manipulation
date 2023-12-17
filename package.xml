@@ -46,6 +46,6 @@
   <exec_depend>xacro</exec_depend>
 
   <export>
-    <controller_interface plugin="${prefix}/franka_controllers_plugin.xml" />
+    <!-- insert smth? -->
   </export>
 </package>
