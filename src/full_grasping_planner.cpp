@@ -1,30 +1,17 @@
-#include <ros/ros.h>
+#include "cloth_manipulation/full_grasping_node.hpp"
 
-#include <pcl_ros/point_cloud.h>
-#include <pcl_ros/transforms.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/filters/voxel_grid.h>
+Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
+{
+    base_pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_filtered", 10);
+    pcl_sub = nh_ref.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 10, &Grasping::pointCloudCallback, this);
 
-#include <tf2_eigen/tf2_eigen.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <eigen_conversions/eigen_msg.h>
+    // Load Controller Configuration
+    nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
+}
 
-#include <sensor_msgs/PointCloud2.h>
-
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <moveit_msgs/DisplayRobotState.h>
-#include <moveit_msgs/DisplayTrajectory.h>
-
-bool detect_grasping_point;
-
-tf2_ros::Buffer tf_buffer;
-tf2_ros::TransformListener tf_listener(tf_buffer);
 
 //pre-grasp motion
-bool preGraspMovement()
+bool Grasping::preGraspMovement()
 {
     // Load Controller Configuration : loaded in main function
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
@@ -68,29 +55,40 @@ bool preGraspMovement()
 
 //point cloud sub callback
 
-void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
+void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
 {
-    if(!detect_grasping_point) return;
+    // if(!detect_grasping_point) return;
         
     //convert to pcl type
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
     pcl::fromROSMsg(*points_msg, *pcl_cloud);
 
     //transform point cloud
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-    pcl_ros::transformPointCloud("panda_link0", *pcl_cloud, *transformed_cloud, tf_buffer);
+    try{
+        if (tf_buffer.canTransform("panda_link0", points_msg->header.frame_id, points_msg->header.stamp, ros::Duration(1.0)))
+        {
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+            pcl_ros::transformPointCloud("panda_link0", *pcl_cloud, *transformed_cloud, tf_buffer);
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-    pcl::VoxelGrid<pcl::PointXYZRGB> vox;
-    vox.setInputCloud(transformed_cloud);
-    vox.setLeafSize(0.005f, 0.005f, 0.005f);
-    vox.filter (*filtered_cloud);
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+            pcl::VoxelGrid<pcl::PointXYZRGB> vox;
+            vox.setInputCloud(transformed_cloud);
+            vox.setLeafSize(0.005f, 0.005f, 0.005f);
+            vox.filter (*filtered_cloud);
 
-    //publish new point cloud
-    ros::Publisher  base_pcl_pub = nh.advertise<sensor_msgs::PointCloud2>("/camera/transformed/color/points", 1);
-
-    filtered_cloud->header.frame_id = "panda_link0";    
-    base_pcl_pub.publish(filtered_cloud);
+            filtered_cloud->header.frame_id = "panda_link0";    
+            base_pcl_pub.publish(filtered_cloud);
+            ROS_INFO("Publish success!!");
+        }
+        else
+        {
+            ROS_WARN("Transform not available for the given frame and time.");
+        }
+    }
+    catch (tf2::TransformException& ex)
+    {
+        ROS_WARN("Transform failed: %s", ex.what());
+    }
 
     // float max_height = -6.0;
 
@@ -102,12 +100,12 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "cloth_manipulation_node");
-    nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
-
     ros::NodeHandle nh;
     
-    ros::AsyncSpinner spinner(3);
-    spinner.start();
+    Grasping grasp_obj(nh);
+
+    // ros::AsyncSpinner spinner(3);
+    // spinner.start();
 
     // bool pre_grasp_success = preGraspMovement();
 
@@ -117,12 +115,9 @@ int main(int argc, char **argv)
     //     return 0;
     // }
 
-    detect_grasping_point = false;
-
-    ros::Subscriber pcl_sub = nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 1, pointCloudCallback); 
-
     // ros::shutdown();
     // return 0;
 
-    ros::spin ();
+    ros::spin();
+    return 0;
 }
