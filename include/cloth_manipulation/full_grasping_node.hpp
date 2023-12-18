@@ -4,6 +4,7 @@
 #include <pcl_ros/transforms.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/conditional_removal.h>
 
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_ros/transform_listener.h>
@@ -29,9 +30,12 @@ class Grasping
         ros::Publisher  base_pcl_pub;
         ros::Subscriber pcl_sub;
 
+        int detect_grasping_point;
+
     public:
         Grasping(ros::NodeHandle& nh);
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
         bool preGraspMovement();
+        
 };
 
