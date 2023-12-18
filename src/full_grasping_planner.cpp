@@ -11,6 +11,35 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
 }
 
+void Grasping::openGripper(trajectory_msgs::JointTrajectory& posture)
+{
+  /* Add both finger joints of panda robot. */
+  posture.joint_names.resize(2);
+  posture.joint_names[0] = "panda_finger_joint1";
+  posture.joint_names[1] = "panda_finger_joint2";
+
+  /* Set them as open, wide enough for the object to fit. */
+  posture.points.resize(1);
+  posture.points[0].positions.resize(2);
+  posture.points[0].positions[0] = 0.04;
+  posture.points[0].positions[1] = 0.04;
+  posture.points[0].time_from_start = ros::Duration(0.5);
+}
+
+void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
+{
+  posture.joint_names.resize(2);
+  posture.joint_names[0] = "panda_finger_joint1";
+  posture.joint_names[1] = "panda_finger_joint2";
+
+  /* Set them as closed. */
+  posture.points.resize(1);
+  posture.points[0].positions.resize(2);
+  posture.points[0].positions[0] = 0.00;
+  posture.points[0].positions[1] = 0.00;
+  posture.points[0].time_from_start = ros::Duration(0.5);
+  // END_SUB_TUTORIAL
+}
 
 //pre-grasp motion
 bool Grasping::preGraspMovement()

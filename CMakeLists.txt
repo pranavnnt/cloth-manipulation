@@ -28,6 +28,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_eigen
   tf2_geometry_msgs
+  trajectory_msgs
   urdf
   visualization_msgs
 )
@@ -77,6 +78,7 @@ catkin_package(
     pluginlib
     realtime_tools
     roscpp
+    trajectory_msgs
     urdf
     visualization_msgs
   DEPENDS Franka

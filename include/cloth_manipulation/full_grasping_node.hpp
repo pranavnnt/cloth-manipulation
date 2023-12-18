@@ -19,6 +19,8 @@
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 
+#include <trajectory_msgs/JointTrajectory.h>
+
 class Grasping
 {
     private:
@@ -36,6 +38,9 @@ class Grasping
         Grasping(ros::NodeHandle& nh);
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
         bool preGraspMovement();
+
+        void openGripper(trajectory_msgs::JointTrajectory& posture);
+        void closedGripper(trajectory_msgs::JointTrajectory& posture);
         
 };
 
