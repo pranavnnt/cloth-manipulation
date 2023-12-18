@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   joint_limits_interface
   message_generation
   moveit_core
+  moveit_msgs
   moveit_ros_planning
   moveit_ros_planning_interface
   moveit_visual_tools

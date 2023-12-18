@@ -1,6 +1,6 @@
 #include "cloth_manipulation/full_grasping_node.hpp"
 
-Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
+Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer) , PLANNING_GROUP("panda_arm"), move_group(PLANNING_GROUP)
 {
     base_pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_filtered", 10);
     pcl_sub = nh_ref.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 10, &Grasping::pointCloudCallback, this);
@@ -46,10 +46,6 @@ bool Grasping::preGraspMovement()
 {
     // Load Controller Configuration : loaded in main function
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
-
-    // Planning group
-    static const std::string PLANNING_GROUP = "panda_arm";
-    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
     
     // Set planner
     move_group.setPlannerId("position_joint_trajectory_controller");
@@ -86,7 +82,6 @@ bool Grasping::preGraspMovement()
 }
 
 //point cloud sub callback
-
 void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
 {
     if(!(detect_grasping_point == 1)) return;
@@ -159,16 +154,120 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
     // BOOST_FOREACH 
 }
 
+void Grasping::pick(moveit_msgs::Grasp grasp_pose)
+{
+    // Setting grasp pose
+    // ++++++++++++++++++++++
+    // This is the pose of panda_link8. |br|
+    // Make sure that when you set the grasp_pose, you are setting it to be the pose of the last link in
+    // your manipulator which in this case would be `"panda_link8"` You will have to compensate for the
+    // transform from `"panda_link8"` to the palm of the end effector.
+    grasp_pose.grasp_pose.header.frame_id = "panda_link0";
+    tf2::Quaternion orientation;
+    orientation.setRPY(0, -tau / 8, 0);
+    grasp_pose.grasp_pose.pose.orientation = tf2::toMsg(orientation);
+    grasp_pose.grasp_pose.pose.position.x = 0.415;
+    grasp_pose.grasp_pose.pose.position.y = 0;
+    grasp_pose.grasp_pose.pose.position.z = 0.5;
+  
+    // Setting pre-grasp approach
+    // ++++++++++++++++++++++++++
+    /* Defined with respect to frame_id */
+    grasp_pose.pre_grasp_approach.direction.header.frame_id = "panda_link0";
+    /* Direction is set as positive x axis */
+    grasp_pose.pre_grasp_approach.direction.vector.x = 1.0;
+    grasp_pose.pre_grasp_approach.min_distance = 0.095;
+    grasp_pose.pre_grasp_approach.desired_distance = 0.115;
+  
+    // Setting post-grasp retreat
+    // ++++++++++++++++++++++++++
+    /* Defined with respect to frame_id */
+    grasp_pose.post_grasp_retreat.direction.header.frame_id = "panda_link0";
+    /* Direction is set as positive z axis */
+    grasp_pose.post_grasp_retreat.direction.vector.z = 1.0;
+    grasp_pose.post_grasp_retreat.min_distance = 0.1;
+    grasp_pose.post_grasp_retreat.desired_distance = 0.25;
+  
+    // Setting posture of eef before grasp
+    // +++++++++++++++++++++++++++++++++++
+    openGripper(grasp_pose.pre_grasp_posture);
+    // END_SUB_TUTORIAL
+  
+    // BEGIN_SUB_TUTORIAL pick2
+    // Setting posture of eef during grasp
+    // +++++++++++++++++++++++++++++++++++
+    closedGripper(grasp_pose.grasp_posture);
+    // END_SUB_TUTORIAL
+  
+    // BEGIN_SUB_TUTORIAL pick3
+    // Set support surface as table1.
+    move_group.setSupportSurfaceName("table1");
+    // Call pick to pick up the object using the grasps given
+    move_group.pick("object", grasp_pose);
+    // END_SUB_TUTORIAL
+}
+
+void Grasping::place(std::vector<moveit_msgs::PlaceLocation> place_location)
+{
+    // BEGIN_SUB_TUTORIAL place
+    // TODO(@ridhwanluthra) - Calling place function may lead to "All supplied place locations failed. Retrying last
+    // location in verbose mode." This is a known issue. |br|
+    // |br|
+    // Ideally, you would create a vector of place locations to be attempted although in this example, we only create
+    // // a single place location.
+    //place_location[0].resize(1);
+  
+    // Setting place location pose
+    // +++++++++++++++++++++++++++
+    place_location[0].place_pose.header.frame_id = "panda_link0";
+    tf2::Quaternion orientation;
+    orientation.setRPY(0, 0, tau / 4);  // A quarter turn about the z-axis
+    place_location[0].place_pose.pose.orientation = tf2::toMsg(orientation);
+  
+    /* For place location, we set the value to the exact location of the center of the object. */
+    place_location[0].place_pose.pose.position.x = 0;
+    place_location[0].place_pose.pose.position.y = 0.5;
+    place_location[0].place_pose.pose.position.z = 0.5;
+  
+    // Setting pre-place approach
+    // ++++++++++++++++++++++++++
+    /* Defined with respect to frame_id */
+    place_location[0].pre_place_approach.direction.header.frame_id = "panda_link0";
+    /* Direction is set as negative z axis */
+    place_location[0].pre_place_approach.direction.vector.z = -1.0;
+    place_location[0].pre_place_approach.min_distance = 0.095;
+    place_location[0].pre_place_approach.desired_distance = 0.115;
+  
+    // Setting post-grasp retreat
+    // ++++++++++++++++++++++++++
+    /* Defined with respect to frame_id */
+    place_location[0].post_place_retreat.direction.header.frame_id = "panda_link0";
+    /* Direction is set as negative y axis */
+    place_location[0].post_place_retreat.direction.vector.y = -1.0;
+    place_location[0].post_place_retreat.min_distance = 0.1;
+    place_location[0].post_place_retreat.desired_distance = 0.25;
+  
+    // Setting posture of eef after placing object
+    // +++++++++++++++++++++++++++++++++++++++++++
+    /* Similar to the pick case */
+    openGripper(place_location[0].post_place_posture);
+  
+    // Set support surface as table2.
+    move_group.setSupportSurfaceName("table2");
+    // Call place to place the object using the place locations given.
+    move_group.place("object", place_location);
+    // END_SUB_TUTORIAL
+}
 
 //main driver function
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "cloth_manipulation_node");
     ros::NodeHandle nh;
+    ros::AsyncSpinner spinner(1);
+    spinner.start();
     
     Grasping grasp_obj(nh);
-
-    ros::spin();
 
     // bool pre_grasp_success = grasp_obj.preGraspMovement();
 
@@ -177,6 +276,21 @@ int main(int argc, char **argv)
     //     ros::shutdown();
     //     return 0;
     // }
+
+    // ros::WallDuration(1.0).sleep();
+    // moveit::planning_interface::MoveGroupInterface group("panda_arm");
+    // group.setPlanningTime(45.0);
+
+    // addCollisionObjects(planning_scene_interface);
+
+    // // Wait a bit for ROS things to initialize
+    // ros::WallDuration(1.0).sleep();
+
+    // pick(group);
+
+    // ros::WallDuration(1.0).sleep();
+
+    // place(group);
 
     // ros::shutdown();
     return 0;
