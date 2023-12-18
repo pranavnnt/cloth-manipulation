@@ -32,13 +32,13 @@ class Grasping
         ros::Publisher  base_pcl_pub;
         ros::Subscriber pcl_sub;
 
-        int detect_grasping_point;
-
         // Planning group
         const std::string PLANNING_GROUP;
         moveit::planning_interface::MoveGroupInterface move_group;
 
         const double tau = 2 * M_PI;
+
+        moveit_msgs::Grasp grasp_pose;
 
     public:
         Grasping(ros::NodeHandle& nh);
@@ -48,8 +48,10 @@ class Grasping
         void openGripper(trajectory_msgs::JointTrajectory& posture);
         void closedGripper(trajectory_msgs::JointTrajectory& posture);
 
-        void pick(moveit_msgs::Grasp grasp_pose);
-        void place(std::vector<moveit_msgs::PlaceLocation> place_location);
+        void pick();
+        void place();
+
+        int detect_grasping_point;
         
 };
 
