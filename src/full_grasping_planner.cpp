@@ -99,7 +99,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 // Check if the point is blue (you may need to adjust these thresholds)
                 if ((int)it.b > 80 && std::min((int)it.r,(int)it.g) < (int)it.b)
                 {   
-                    ROS_INFO("Found a blue point!!");
+                    // ROS_INFO("Found a blue point!!");
                     // Check if the point has higher z-coordinate than the current highest point
                     if (!found_blue_point || it.z > highest_blue_point.z)
                     {
