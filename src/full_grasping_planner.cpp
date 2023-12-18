@@ -1,6 +1,6 @@
 #include "cloth_manipulation/full_grasping_node.hpp"
 
-Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer) , PLANNING_GROUP("panda_arm"), move_group(PLANNING_GROUP)
+Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
 {
     base_pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_filtered", 10);
     pcl_sub = nh_ref.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 10, &Grasping::pointCloudCallback, this);
@@ -8,10 +8,6 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     //move_group.setPlanningTime(45.0);
 
     detect_grasping_point = 0;
-
-    // Load Controller Configuration
-    nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
-    move_group.setPlannerId("position_joint_trajectory_controller");
 }
 
 void Grasping::openGripper(trajectory_msgs::JointTrajectory& posture)
@@ -26,7 +22,7 @@ void Grasping::openGripper(trajectory_msgs::JointTrajectory& posture)
   posture.points[0].positions.resize(2);
   posture.points[0].positions[0] = 0.035;
   posture.points[0].positions[1] = 0.035;
-  //posture.points[0].time_from_start = ros::Duration(0.5);
+  posture.points[0].time_from_start = ros::Duration(30.0);
 }
 
 void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
@@ -38,14 +34,14 @@ void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
   /* Set them as closed. */
   posture.points.resize(1);
   posture.points[0].positions.resize(2);
-  posture.points[0].positions[0] = 0.00;
-  posture.points[0].positions[1] = 0.00;
-  //posture.points[0].time_from_start = ros::Duration(0.5);
+  posture.points[0].positions[0] = 0.007;
+  posture.points[0].positions[1] = 0.007;
+  posture.points[0].time_from_start = ros::Duration(30.0);
   // END_SUB_TUTORIAL
 }
 
 //pre-grasp motion
-bool Grasping::preGraspMovement()
+bool Grasping::preGraspMovement(moveit::planning_interface::MoveGroupInterface& move_group)
 {
     // Load Controller Configuration : loaded in main function
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
@@ -54,19 +50,18 @@ bool Grasping::preGraspMovement()
     
 
     // Set the joint target values
-    std::vector<double> pre_grasp_target = {0.3481298279961115, -0.4755552899338467, -0.32365981495171264, -2.714270300580744,
-                                           -0.5073398909303876, 2.7890981041325706, 1.4532492337442104};
+    std::vector<double> pre_grasp_target = {2.166085604918468, -1.3538849044637642, 0.33954661402785985, -2.9432076017150175, 0.4971391740110185, 1.9677453207013593, 0.12029780698200249};
 
     // Set the joint target
     move_group.setJointValueTarget(pre_grasp_target);
     move_group.setNumPlanningAttempts(5);
-    move_group.setPlanningTime(5.0);
+    //move_group.setPlanningTime(5.0);
 
     // Call the planner to compute the plan
     moveit::planning_interface::MoveGroupInterface::Plan pre_grasp_plan;
     bool success = static_cast<bool>(move_group.plan(pre_grasp_plan));
 
-    ros::Duration(5.0).sleep();
+    //ros::Duration(5.0).sleep();
 
     if (success)
     {
@@ -113,7 +108,6 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
             // ROS_INFO("Publish success!!");
 
             // Initialize variables to store the highest blue point
-            pcl::PointXYZRGB highest_blue_point;
             bool found_blue_point = false;
 
             // Use PCL iterators for optimized iteration
@@ -124,7 +118,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 // ROS_INFO_STREAM("Red is " << (int)it.r << ", green is " << (int)it.g << ", blue is " << (int)it.b);
                 // ROS_INFO_STREAM("--------------------------------------------------------------------");
                 // Check if the point is blue (you may need to adjust these thresholds)
-                if ((int)it.b > 80 && std::min((int)it.r,(int)it.g) < (int)it.b)
+                if ((int)it.b > 80 && ((int)it.b*1.0)/std::min((int)it.r,(int)it.g) > 5.0)
                 {   
                     // ROS_INFO("Found a blue point!!");
                     // Check if the point has higher z-coordinate than the current highest point
@@ -183,7 +177,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
     // BOOST_FOREACH 
 }
 
-void Grasping::pick()
+void Grasping::pick(moveit::planning_interface::MoveGroupInterface& move_group)
 {
     // Setting grasp pose
     // ++++++++++++++++++++++
@@ -216,6 +210,8 @@ void Grasping::pick()
     // grasp_pose.post_grasp_retreat.direction.vector.z = 1.0;
     // grasp_pose.post_grasp_retreat.min_distance = 0.1;
     // grasp_pose.post_grasp_retreat.desired_distance = 0.25;
+
+    move_group.setPlannerId("geometric::RRT");
   
     // Setting posture of eef before grasp
     // +++++++++++++++++++++++++++++++++++
@@ -239,7 +235,7 @@ void Grasping::pick()
     // END_SUB_TUTORIAL
 }
 
-void Grasping::place()
+void Grasping::place(moveit::planning_interface::MoveGroupInterface& move_group)
 {
     // BEGIN_SUB_TUTORIAL place
     // TODO(@ridhwanluthra) - Calling place function may lead to "All supplied place locations failed. Retrying last
@@ -248,26 +244,32 @@ void Grasping::place()
     // Ideally, you would create a vector of place locations to be attempted although in this example, we only create
     // // a single place location.
     std::vector<moveit_msgs::PlaceLocation> place_location;
-    // place_location[0].resize(1);
+    place_location.resize(1);
   
     // Setting place location pose
     // +++++++++++++++++++++++++++
+    ROS_INFO("Entered the place function (1)!!");
     place_location[0].place_pose.header.frame_id = "panda_link0";
     tf2::Quaternion orientation;
-    orientation.setRPY(0, 0, tau / 4);  // A quarter turn about the z-axis
+    orientation.setRPY(-tau/2, 0, 0);
     place_location[0].place_pose.pose.orientation = tf2::toMsg(orientation);
+    ROS_INFO("Entered the place function (2)!!");
   
     /* For place location, we set the value to the exact location of the center of the object. */
-    place_location[0].place_pose.pose.position.x = 0;
-    place_location[0].place_pose.pose.position.y = 0.5;
-    place_location[0].place_pose.pose.position.z = 0.5;
+    place_location[0].place_pose.pose.position.x = highest_blue_point.x;
+    place_location[0].place_pose.pose.position.y = highest_blue_point.y;
+    place_location[0].place_pose.pose.position.z = highest_blue_point.z;
+
+    ROS_INFO("Entered the place function (3)!!");
   
+    move_group.setPlannerId("geometric::RRTstar");
+    
     // Setting pre-place approach
     // ++++++++++++++++++++++++++
     /* Defined with respect to frame_id */
     place_location[0].pre_place_approach.direction.header.frame_id = "panda_link0";
     /* Direction is set as negative z axis */
-    place_location[0].pre_place_approach.direction.vector.z = -1.0;
+    place_location[0].pre_place_approach.direction.vector.x = 1.0;
     place_location[0].pre_place_approach.min_distance = 0.095;
     place_location[0].pre_place_approach.desired_distance = 0.115;
   
@@ -276,20 +278,100 @@ void Grasping::place()
     /* Defined with respect to frame_id */
     place_location[0].post_place_retreat.direction.header.frame_id = "panda_link0";
     /* Direction is set as negative y axis */
-    place_location[0].post_place_retreat.direction.vector.y = -1.0;
+    place_location[0].post_place_retreat.direction.vector.x = -1.0;
     place_location[0].post_place_retreat.min_distance = 0.1;
     place_location[0].post_place_retreat.desired_distance = 0.25;
+
+    ROS_INFO("Entered the place function (4)!!");
   
     // Setting posture of eef after placing object
     // +++++++++++++++++++++++++++++++++++++++++++
     /* Similar to the pick case */
     openGripper(place_location[0].post_place_posture);
   
+    ROS_INFO("Entered the place function (5)!!");
     // Set support surface as table2.
     move_group.setSupportSurfaceName("table2");
     // Call place to place the object using the place locations given.
     move_group.place("object", place_location);
+    ROS_INFO("Entered the place function (6)!!");
     // END_SUB_TUTORIAL
+}
+
+void Grasping::addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface)
+{
+    // BEGIN_SUB_TUTORIAL table1
+    //
+    // Creating Environment
+    // ^^^^^^^^^^^^^^^^^^^^
+    // Create vector to hold 3 collision objects.
+    std::vector<moveit_msgs::CollisionObject> collision_objects;
+    collision_objects.resize(4);
+
+    // Add the first table where the cube will originally be kept.
+    collision_objects[0].id = "table1";
+    collision_objects[0].header.frame_id = "panda_link0";
+
+    /* Define the primitive and its dimensions. */
+    collision_objects[0].primitives.resize(1);
+    collision_objects[0].primitives[0].type = collision_objects[0].primitives[0].BOX;
+    collision_objects[0].primitives[0].dimensions.resize(3);
+    collision_objects[0].primitives[0].dimensions[0] = 0.2;
+    collision_objects[0].primitives[0].dimensions[1] = 0.4;
+    collision_objects[0].primitives[0].dimensions[2] = 0.4;
+
+    /* Define the pose of the table. */
+    collision_objects[0].primitive_poses.resize(1);
+    collision_objects[0].primitive_poses[0].position.x = 0.5;
+    collision_objects[0].primitive_poses[0].position.y = 0;
+    collision_objects[0].primitive_poses[0].position.z = -2;
+    collision_objects[0].primitive_poses[0].orientation.w = 1.0;
+    // END_SUB_TUTORIAL
+
+    collision_objects[0].operation = collision_objects[0].ADD;
+
+    // BEGIN_SUB_TUTORIAL object
+    // Define the object that we will be manipulating
+    collision_objects[1].header.frame_id = "panda_link0";
+    collision_objects[1].id = "object";
+
+    /* Define the primitive and its dimensions. */
+    collision_objects[1].primitives.resize(1);
+    collision_objects[1].primitives[0].type = collision_objects[1].primitives[0].BOX;
+    collision_objects[1].primitives[0].dimensions.resize(3);
+    collision_objects[1].primitives[0].dimensions[0] = 0.05;
+    collision_objects[1].primitives[0].dimensions[1] = 0.05;
+    collision_objects[1].primitives[0].dimensions[2] = 0.05 ;
+
+    /* Define the pose of the object. */
+    collision_objects[1].primitive_poses.resize(1);
+    collision_objects[1].primitive_poses[0].position.x = 0;
+    collision_objects[1].primitive_poses[0].position.y = -0.5;
+    collision_objects[1].primitive_poses[0].position.z = -0.2;
+    collision_objects[1].primitive_poses[0].orientation.w = 1.0;
+    // END_SUB_TUTORIAL
+
+    collision_objects[1].operation = collision_objects[1].ADD;
+
+     // Add the first table where the cube will originally be kept.
+    collision_objects[2].id = "table1";
+    collision_objects[2].header.frame_id = "panda_link0";
+
+    collision_objects[2].primitives.resize(1);
+    collision_objects[2].primitives[0].type = collision_objects[1].primitives[0].BOX;
+    collision_objects[2].primitives[0].dimensions.resize(3);
+    collision_objects[2].primitives[0].dimensions[0] = 0.02;
+    collision_objects[2].primitives[0].dimensions[1] = 0.02;
+    collision_objects[2].primitives[0].dimensions[2] = 2;
+
+    /* Define the pose of the object. */
+    collision_objects[2].primitive_poses.resize(1);
+    collision_objects[2].primitive_poses[0].position.x = 0.5;
+    collision_objects[2].primitive_poses[0].position.y = 0;
+    collision_objects[2].primitive_poses[0].position.z = 0.5;
+    collision_objects[2].primitive_poses[0].orientation.w = 1.0;
+
+    planning_scene_interface.applyCollisionObjects(collision_objects);
 }
 
 //main driver function
@@ -297,12 +379,20 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "cloth_manipulation_node");
     ros::NodeHandle nh;
+
+    // Load Controller Configuration
+    nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
+
+    const std::string PLANNING_GROUP = "panda_arm";
+    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     ros::AsyncSpinner spinner(1);
     spinner.start();
     
     Grasping grasp_obj(nh);
+    grasp_obj.addCollisionObjects(planning_scene_interface);
 
-    bool pre_grasp_success = grasp_obj.preGraspMovement();
+    bool pre_grasp_success = grasp_obj.preGraspMovement(move_group);
 
     if(!pre_grasp_success)
     {
@@ -315,9 +405,10 @@ int main(int argc, char **argv)
         if(grasp_obj.detect_grasping_point == 2)
         {
             ros::WallDuration(1.0).sleep();
-            grasp_obj.pick();
+            grasp_obj.pick(move_group);
+
             ros::WallDuration(1.0).sleep();
-            grasp_obj.place();
+            grasp_obj.place(move_group);
             break;
         }
         else
