@@ -34,8 +34,8 @@ void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
   /* Set them as closed. */
   posture.points.resize(1);
   posture.points[0].positions.resize(2);
-  posture.points[0].positions[0] = 0.007;
-  posture.points[0].positions[1] = 0.007;
+  posture.points[0].positions[0] = 0.005;
+  posture.points[0].positions[1] = 0.005;
   posture.points[0].time_from_start = ros::Duration(30.0);
   // END_SUB_TUTORIAL
 }
