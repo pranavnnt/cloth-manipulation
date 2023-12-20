@@ -5,7 +5,15 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     base_pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_filtered", 10);
     pcl_sub = nh_ref.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 10, &Grasping::pointCloudCallback, this);
 
-    //move_group.setPlanningTime(45.0);
+    PLANNING_GROUP = "panda_arm";
+    move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
+
+    move_group->setMaxVelocityScalingFactor(0.05);
+    move_group->setMaxAccelerationScalingFactor(0.05);
+
+    addCollisionObjects(planning_scene_interface);
+
+    //move_group->setPlanningTime(45.0);
 
     detect_grasping_point = 0;
 }
@@ -41,7 +49,7 @@ void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
 }
 
 //pre-grasp motion
-bool Grasping::preGraspMovement(moveit::planning_interface::MoveGroupInterface& move_group)
+bool Grasping::preGraspMovement()
 {
     // Load Controller Configuration : loaded in main function
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
@@ -53,13 +61,13 @@ bool Grasping::preGraspMovement(moveit::planning_interface::MoveGroupInterface& 
     std::vector<double> pre_grasp_target = {2.166085604918468, -1.3538849044637642, 0.33954661402785985, -2.9432076017150175, 0.4971391740110185, 1.9677453207013593, 0.12029780698200249};
 
     // Set the joint target
-    move_group.setJointValueTarget(pre_grasp_target);
-    move_group.setNumPlanningAttempts(5);
-    //move_group.setPlanningTime(5.0);
+    move_group->setJointValueTarget(pre_grasp_target);
+    move_group->setNumPlanningAttempts(5);
+    //move_group->setPlanningTime(5.0);
 
     // Call the planner to compute the plan
     moveit::planning_interface::MoveGroupInterface::Plan pre_grasp_plan;
-    bool success = static_cast<bool>(move_group.plan(pre_grasp_plan));
+    bool success = static_cast<bool>(move_group->plan(pre_grasp_plan));
 
     //ros::Duration(5.0).sleep();
 
@@ -68,7 +76,7 @@ bool Grasping::preGraspMovement(moveit::planning_interface::MoveGroupInterface& 
         ROS_INFO("Pre-grasp plan successful. Executing the plan.");
 
         // Execute the plan
-        move_group.execute(pre_grasp_plan);
+        move_group->execute(pre_grasp_plan);
         detect_grasping_point++;
         return true;
     }
@@ -177,7 +185,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
     // BOOST_FOREACH 
 }
 
-void Grasping::pick(moveit::planning_interface::MoveGroupInterface& move_group)
+void Grasping::pick()
 {
     // Setting grasp pose
     // ++++++++++++++++++++++
@@ -211,7 +219,7 @@ void Grasping::pick(moveit::planning_interface::MoveGroupInterface& move_group)
     // grasp_pose.post_grasp_retreat.min_distance = 0.1;
     // grasp_pose.post_grasp_retreat.desired_distance = 0.25;
 
-    move_group.setPlannerId("geometric::RRT");
+    move_group->setPlannerId("geometric::RRT");
   
     // Setting posture of eef before grasp
     // +++++++++++++++++++++++++++++++++++
@@ -227,15 +235,15 @@ void Grasping::pick(moveit::planning_interface::MoveGroupInterface& move_group)
     ROS_INFO("Entered the pick function (3)!!");
     // BEGIN_SUB_TUTORIAL pick3
     // Set support surface as table1.
-    move_group.setSupportSurfaceName("table1");
+    move_group->setSupportSurfaceName("table1");
     // Call pick to pick up the object using the grasps given
     ROS_INFO("Entered the pick function (4)!!");
-    move_group.pick("object", grasp_pose);
+    move_group->pick("object", grasp_pose);
     ROS_INFO("Entered the pick function (5)!!");
     // END_SUB_TUTORIAL
 }
 
-void Grasping::place(moveit::planning_interface::MoveGroupInterface& move_group)
+void Grasping::place()
 {
     // BEGIN_SUB_TUTORIAL place
     // TODO(@ridhwanluthra) - Calling place function may lead to "All supplied place locations failed. Retrying last
@@ -262,7 +270,7 @@ void Grasping::place(moveit::planning_interface::MoveGroupInterface& move_group)
 
     ROS_INFO("Entered the place function (3)!!");
   
-    move_group.setPlannerId("geometric::RRTstar");
+    move_group->setPlannerId("geometric::RRTstar");
     
     // Setting pre-place approach
     // ++++++++++++++++++++++++++
@@ -291,9 +299,9 @@ void Grasping::place(moveit::planning_interface::MoveGroupInterface& move_group)
   
     ROS_INFO("Entered the place function (5)!!");
     // Set support surface as table2.
-    move_group.setSupportSurfaceName("table2");
+    move_group->setSupportSurfaceName("table2");
     // Call place to place the object using the place locations given.
-    move_group.place("object", place_location);
+    move_group->place("object", place_location);
     ROS_INFO("Entered the place function (6)!!");
     // END_SUB_TUTORIAL
 }
@@ -383,16 +391,12 @@ int main(int argc, char **argv)
     // Load Controller Configuration
     nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
 
-    const std::string PLANNING_GROUP = "panda_arm";
-    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     ros::AsyncSpinner spinner(1);
     spinner.start();
     
     Grasping grasp_obj(nh);
-    grasp_obj.addCollisionObjects(planning_scene_interface);
-
-    bool pre_grasp_success = grasp_obj.preGraspMovement(move_group);
+    
+    bool pre_grasp_success = grasp_obj.preGraspMovement();
 
     if(!pre_grasp_success)
     {
@@ -405,10 +409,10 @@ int main(int argc, char **argv)
         if(grasp_obj.detect_grasping_point == 2)
         {
             ros::WallDuration(1.0).sleep();
-            grasp_obj.pick(move_group);
+            grasp_obj.pick();
 
             ros::WallDuration(1.0).sleep();
-            grasp_obj.place(move_group);
+            grasp_obj.place();
             break;
         }
         else

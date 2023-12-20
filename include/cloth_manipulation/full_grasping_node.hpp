@@ -37,17 +37,21 @@ class Grasping
         moveit_msgs::Grasp grasp_pose;
         pcl::PointXYZRGB highest_blue_point;
 
+        std::string PLANNING_GROUP;
+        std::unique_ptr<moveit::planning_interface::MoveGroupInterface> move_group;
+        moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+
     public:
         Grasping(ros::NodeHandle& nh);
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
-        bool preGraspMovement(moveit::planning_interface::MoveGroupInterface& move_group);
+        bool preGraspMovement();
 
         void openGripper(trajectory_msgs::JointTrajectory& posture);
         void closedGripper(trajectory_msgs::JointTrajectory& posture);
         void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
 
-        void pick(moveit::planning_interface::MoveGroupInterface& move_group);
-        void place(moveit::planning_interface::MoveGroupInterface& move_group);
+        void pick();
+        void place();
 
         int detect_grasping_point;
         
