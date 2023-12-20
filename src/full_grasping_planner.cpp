@@ -19,7 +19,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     highest_blue_point.y = 0;
     highest_blue_point.z = 0.5;
 
-    move_group->setPlanningTime(45.0);
+    move_group->setPlanningTime(15.0);
 
     nh_ref.getParam("/highest_blue_point/x", highest_blue_point.x);
     nh_ref.getParam("/highest_blue_point/y", highest_blue_point.y);
@@ -52,8 +52,8 @@ void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
   /* Set them as closed. */
   posture.points.resize(1);
   posture.points[0].positions.resize(2);
-  posture.points[0].positions[0] = 0.005;
-  posture.points[0].positions[1] = 0.005;
+  posture.points[0].positions[0] = 0.000;
+  posture.points[0].positions[1] = 0.000;
   posture.points[0].time_from_start = ros::Duration(30.0);
   // END_SUB_TUTORIAL
 }
@@ -210,9 +210,9 @@ void Grasping::pick()
   tf2::Quaternion orientation;
   orientation.setRPY(- tau/2, 0, 0);
   grasps[0].grasp_pose.pose.orientation = tf2::toMsg(orientation);
-  grasps[0].grasp_pose.pose.position.x = -0.65;
-  grasps[0].grasp_pose.pose.position.y = 0.18;
-  grasps[0].grasp_pose.pose.position.z = 0.1;
+  grasps[0].grasp_pose.pose.position.x = -0.45;
+  grasps[0].grasp_pose.pose.position.y = 0.15;
+  grasps[0].grasp_pose.pose.position.z = 0.0;
 
   // Setting pre-grasp approach
   // ++++++++++++++++++++++++++
@@ -397,9 +397,6 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "cloth_manipulation_node");
     ros::NodeHandle nh;
-
-    // Load Controller Configuration
-    nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
 
     ros::AsyncSpinner spinner(1);
     spinner.start();
