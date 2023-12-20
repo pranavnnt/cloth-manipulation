@@ -13,7 +13,15 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
 
     addCollisionObjects(planning_scene_interface);
 
-    //move_group->setPlanningTime(45.0);
+    highest_blue_point.x = 0.415;
+    highest_blue_point.y = 0;
+    highest_blue_point.z = 0.5;
+
+    move_group->setPlanningTime(45.0);
+
+    nh_ref.getParam("/highest_blue_point/x", highest_blue_point.x);
+    nh_ref.getParam("/highest_blue_point/y", highest_blue_point.y);
+    nh_ref.getParam("/highest_blue_point/z", highest_blue_point.z);
 
     detect_grasping_point = 0;
 }
@@ -77,7 +85,7 @@ bool Grasping::preGraspMovement()
 
         // Execute the plan
         move_group->execute(pre_grasp_plan);
-        detect_grasping_point++;
+        detect_grasping_point+= 2;
         return true;
     }
     else
@@ -187,60 +195,57 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
 
 void Grasping::pick()
 {
-    // Setting grasp pose
-    // ++++++++++++++++++++++
-    // This is the pose of panda_link8. |br|
-    // Make sure that when you set the grasp_pose, you are setting it to be the pose of the last link in
-    // your manipulator which in this case would be `"panda_link8"` You will have to compensate for the
-    // transform from `"panda_link8"` to the palm of the end effector.
-    // grasp_pose.grasp_pose.header.frame_id = "panda_link0";
-    // tf2::Quaternion orientation;
-    // orientation.setRPY(0, -tau / 8, 0);
-    // grasp_pose.grasp_pose.pose.orientation = tf2::toMsg(orientation);
-    // grasp_pose.grasp_pose.pose.position.x = 0.415;
-    // grasp_pose.grasp_pose.pose.position.y = 0;
-    // grasp_pose.grasp_pose.pose.position.z = 0.5;
-  
-    // // Setting pre-grasp approach
-    // // ++++++++++++++++++++++++++
-    // /* Defined with respect to frame_id */
-    // grasp_pose.pre_grasp_approach.direction.header.frame_id = "panda_link0";
-    // /* Direction is set as positive x axis */
-    // grasp_pose.pre_grasp_approach.direction.vector.x = 1.0;
-    // grasp_pose.pre_grasp_approach.min_distance = 0.095;
-    // grasp_pose.pre_grasp_approach.desired_distance = 0.115;
-  
-    // // Setting post-grasp retreat
-    // // ++++++++++++++++++++++++++
-    // /* Defined with respect to frame_id */
-    // grasp_pose.post_grasp_retreat.direction.header.frame_id = "panda_link0";
-    // /* Direction is set as positive z axis */
-    // grasp_pose.post_grasp_retreat.direction.vector.z = 1.0;
-    // grasp_pose.post_grasp_retreat.min_distance = 0.1;
-    // grasp_pose.post_grasp_retreat.desired_distance = 0.25;
+  std::vector<moveit_msgs::Grasp> grasps;
+  grasps.resize(1);
 
-    move_group->setPlannerId("geometric::RRT");
-  
-    // Setting posture of eef before grasp
-    // +++++++++++++++++++++++++++++++++++
-    ROS_INFO("Entered the pick function (1)!!");
-    openGripper(grasp_pose.pre_grasp_posture);
-    // END_SUB_TUTORIAL
-    ROS_INFO("Entered the pick function (2)!!");
-    // BEGIN_SUB_TUTORIAL pick2
-    // Setting posture of eef during grasp
-    // +++++++++++++++++++++++++++++++++++
-    closedGripper(grasp_pose.grasp_posture);
-    // END_SUB_TUTORIAL
-    ROS_INFO("Entered the pick function (3)!!");
-    // BEGIN_SUB_TUTORIAL pick3
-    // Set support surface as table1.
-    move_group->setSupportSurfaceName("table1");
-    // Call pick to pick up the object using the grasps given
-    ROS_INFO("Entered the pick function (4)!!");
-    move_group->pick("object", grasp_pose);
-    ROS_INFO("Entered the pick function (5)!!");
-    // END_SUB_TUTORIAL
+  // Setting grasp pose
+  // ++++++++++++++++++++++
+  // This is the pose of panda_link8. |br|
+  // Make sure that when you set the grasp_pose, you are setting it to be the pose of the last link in
+  // your manipulator which in this case would be `"panda_link8"` You will have to compensate for the
+  // transform from `"panda_link8"` to the palm of the end effector.
+  grasps[0].grasp_pose.header.frame_id = "panda_link0";
+  tf2::Quaternion orientation;
+  orientation.setRPY(-tau / 4, -tau / 8, -tau / 4);
+  grasps[0].grasp_pose.pose.orientation = tf2::toMsg(orientation);
+  grasps[0].grasp_pose.pose.position.x = 0.415;
+  grasps[0].grasp_pose.pose.position.y = 0;
+  grasps[0].grasp_pose.pose.position.z = 0.5;
+
+  // Setting pre-grasp approach
+  // ++++++++++++++++++++++++++
+  /* Defined with respect to frame_id */
+  grasps[0].pre_grasp_approach.direction.header.frame_id = "panda_link0";
+  /* Direction is set as positive x axis */
+  grasps[0].pre_grasp_approach.direction.vector.x = 1.0;
+  grasps[0].pre_grasp_approach.min_distance = 0.095;
+  grasps[0].pre_grasp_approach.desired_distance = 0.115;
+
+  // Setting post-grasp retreat
+  // ++++++++++++++++++++++++++
+  /* Defined with respect to frame_id */
+  grasps[0].post_grasp_retreat.direction.header.frame_id = "panda_link0";
+  /* Direction is set as positive z axis */
+  grasps[0].post_grasp_retreat.direction.vector.z = 1.0;
+  grasps[0].post_grasp_retreat.min_distance = 0.1;
+  grasps[0].post_grasp_retreat.desired_distance = 0.25;
+
+  // Setting posture of eef before grasp
+  // +++++++++++++++++++++++++++++++++++
+  openGripper(grasps[0].pre_grasp_posture);
+  // END_SUB_TUTORIAL
+
+  // BEGIN_SUB_TUTORIAL pick2
+  // Setting posture of eef during grasp
+  // +++++++++++++++++++++++++++++++++++
+  closedGripper(grasps[0].grasp_posture);
+  // END_SUB_TUTORIAL
+
+  // BEGIN_SUB_TUTORIAL pick3
+  // Set support surface as table1.
+  move_group.setSupportSurfaceName("table1");
+  // Call pick to pick up the object using the grasps given
+  move_group.pick("object", grasps);
 }
 
 void Grasping::place()
@@ -309,77 +314,82 @@ void Grasping::place()
 void Grasping::addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface)
 {
     // BEGIN_SUB_TUTORIAL table1
-    //
-    // Creating Environment
-    // ^^^^^^^^^^^^^^^^^^^^
-    // Create vector to hold 3 collision objects.
-    std::vector<moveit_msgs::CollisionObject> collision_objects;
-    collision_objects.resize(4);
+  //
+  // Creating Environment
+  // ^^^^^^^^^^^^^^^^^^^^
+  // Create vector to hold 3 collision objects.
+  std::vector<moveit_msgs::CollisionObject> collision_objects;
+  collision_objects.resize(3);
 
-    // Add the first table where the cube will originally be kept.
-    collision_objects[0].id = "table1";
-    collision_objects[0].header.frame_id = "panda_link0";
+  // Add the first table where the cube will originally be kept.
+  collision_objects[0].id = "table1";
+  collision_objects[0].header.frame_id = "panda_link0";
 
-    /* Define the primitive and its dimensions. */
-    collision_objects[0].primitives.resize(1);
-    collision_objects[0].primitives[0].type = collision_objects[0].primitives[0].BOX;
-    collision_objects[0].primitives[0].dimensions.resize(3);
-    collision_objects[0].primitives[0].dimensions[0] = 0.2;
-    collision_objects[0].primitives[0].dimensions[1] = 0.4;
-    collision_objects[0].primitives[0].dimensions[2] = 0.4;
+  /* Define the primitive and its dimensions. */
+  collision_objects[0].primitives.resize(1);
+  collision_objects[0].primitives[0].type = collision_objects[0].primitives[0].BOX;
+  collision_objects[0].primitives[0].dimensions.resize(3);
+  collision_objects[0].primitives[0].dimensions[0] = 0.2;
+  collision_objects[0].primitives[0].dimensions[1] = 0.4;
+  collision_objects[0].primitives[0].dimensions[2] = 0.4;
 
-    /* Define the pose of the table. */
-    collision_objects[0].primitive_poses.resize(1);
-    collision_objects[0].primitive_poses[0].position.x = 0.5;
-    collision_objects[0].primitive_poses[0].position.y = 0;
-    collision_objects[0].primitive_poses[0].position.z = -2;
-    collision_objects[0].primitive_poses[0].orientation.w = 1.0;
-    // END_SUB_TUTORIAL
+  /* Define the pose of the table. */
+  collision_objects[0].primitive_poses.resize(1);
+  collision_objects[0].primitive_poses[0].position.x = 0.5;
+  collision_objects[0].primitive_poses[0].position.y = 0;
+  collision_objects[0].primitive_poses[0].position.z = 0.2;
+  collision_objects[0].primitive_poses[0].orientation.w = 1.0;
+  // END_SUB_TUTORIAL
 
-    collision_objects[0].operation = collision_objects[0].ADD;
+  collision_objects[0].operation = collision_objects[0].ADD;
 
-    // BEGIN_SUB_TUTORIAL object
-    // Define the object that we will be manipulating
-    collision_objects[1].header.frame_id = "panda_link0";
-    collision_objects[1].id = "object";
+  // BEGIN_SUB_TUTORIAL table2
+  // Add the second table where we will be placing the cube.
+  collision_objects[1].id = "table2";
+  collision_objects[1].header.frame_id = "panda_link0";
 
-    /* Define the primitive and its dimensions. */
-    collision_objects[1].primitives.resize(1);
-    collision_objects[1].primitives[0].type = collision_objects[1].primitives[0].BOX;
-    collision_objects[1].primitives[0].dimensions.resize(3);
-    collision_objects[1].primitives[0].dimensions[0] = 0.05;
-    collision_objects[1].primitives[0].dimensions[1] = 0.05;
-    collision_objects[1].primitives[0].dimensions[2] = 0.05 ;
+  /* Define the primitive and its dimensions. */
+  collision_objects[1].primitives.resize(1);
+  collision_objects[1].primitives[0].type = collision_objects[1].primitives[0].BOX;
+  collision_objects[1].primitives[0].dimensions.resize(3);
+  collision_objects[1].primitives[0].dimensions[0] = 0.4;
+  collision_objects[1].primitives[0].dimensions[1] = 0.2;
+  collision_objects[1].primitives[0].dimensions[2] = 0.4;
 
-    /* Define the pose of the object. */
-    collision_objects[1].primitive_poses.resize(1);
-    collision_objects[1].primitive_poses[0].position.x = 0;
-    collision_objects[1].primitive_poses[0].position.y = -0.5;
-    collision_objects[1].primitive_poses[0].position.z = -0.2;
-    collision_objects[1].primitive_poses[0].orientation.w = 1.0;
-    // END_SUB_TUTORIAL
+  /* Define the pose of the table. */
+  collision_objects[1].primitive_poses.resize(1);
+  collision_objects[1].primitive_poses[0].position.x = 0;
+  collision_objects[1].primitive_poses[0].position.y = 0.5;
+  collision_objects[1].primitive_poses[0].position.z = 0.2;
+  collision_objects[1].primitive_poses[0].orientation.w = 1.0;
+  // END_SUB_TUTORIAL
 
-    collision_objects[1].operation = collision_objects[1].ADD;
+  collision_objects[1].operation = collision_objects[1].ADD;
 
-     // Add the first table where the cube will originally be kept.
-    collision_objects[2].id = "table1";
-    collision_objects[2].header.frame_id = "panda_link0";
+  // BEGIN_SUB_TUTORIAL object
+  // Define the object that we will be manipulating
+  collision_objects[2].header.frame_id = "panda_link0";
+  collision_objects[2].id = "object";
 
-    collision_objects[2].primitives.resize(1);
-    collision_objects[2].primitives[0].type = collision_objects[1].primitives[0].BOX;
-    collision_objects[2].primitives[0].dimensions.resize(3);
-    collision_objects[2].primitives[0].dimensions[0] = 0.02;
-    collision_objects[2].primitives[0].dimensions[1] = 0.02;
-    collision_objects[2].primitives[0].dimensions[2] = 2;
+  /* Define the primitive and its dimensions. */
+  collision_objects[2].primitives.resize(1);
+  collision_objects[2].primitives[0].type = collision_objects[1].primitives[0].BOX;
+  collision_objects[2].primitives[0].dimensions.resize(3);
+  collision_objects[2].primitives[0].dimensions[0] = 0.02;
+  collision_objects[2].primitives[0].dimensions[1] = 0.02;
+  collision_objects[2].primitives[0].dimensions[2] = 0.2;
 
-    /* Define the pose of the object. */
-    collision_objects[2].primitive_poses.resize(1);
-    collision_objects[2].primitive_poses[0].position.x = 0.5;
-    collision_objects[2].primitive_poses[0].position.y = 0;
-    collision_objects[2].primitive_poses[0].position.z = 0.5;
-    collision_objects[2].primitive_poses[0].orientation.w = 1.0;
+  /* Define the pose of the object. */
+  collision_objects[2].primitive_poses.resize(1);
+  collision_objects[2].primitive_poses[0].position.x = 0.5;
+  collision_objects[2].primitive_poses[0].position.y = 0;
+  collision_objects[2].primitive_poses[0].position.z = 0.5;
+  collision_objects[2].primitive_poses[0].orientation.w = 1.0;
+  // END_SUB_TUTORIAL
 
-    planning_scene_interface.applyCollisionObjects(collision_objects);
+  collision_objects[2].operation = collision_objects[2].ADD;
+
+  planning_scene_interface.applyCollisionObjects(collision_objects);
 }
 
 //main driver function
@@ -396,23 +406,23 @@ int main(int argc, char **argv)
     
     Grasping grasp_obj(nh);
     
-    bool pre_grasp_success = grasp_obj.preGraspMovement();
+    // bool pre_grasp_success = grasp_obj.preGraspMovement();
 
-    if(!pre_grasp_success)
-    {
-        ros::shutdown();
-        return 0;
-    }
+    // if(!pre_grasp_success)
+    // {
+    //     ros::shutdown();
+    //     return 0;
+    // }
 
     while(ros::ok())
     {
-        if(grasp_obj.detect_grasping_point == 2)
+        if(grasp_obj.detect_grasping_point == 0)
         {
             ros::WallDuration(1.0).sleep();
             grasp_obj.pick();
 
-            ros::WallDuration(1.0).sleep();
-            grasp_obj.place();
+            // ros::WallDuration(1.0).sleep();
+            // grasp_obj.place();
             break;
         }
         else
