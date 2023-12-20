@@ -8,8 +8,8 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     PLANNING_GROUP = "panda_arm";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
 
-    move_group->setMaxVelocityScalingFactor(0.05);
-    move_group->setMaxAccelerationScalingFactor(0.05);
+    move_group->setMaxVelocityScalingFactor(0.1);
+    move_group->setMaxAccelerationScalingFactor(0.1);
 
     addCollisionObjects(planning_scene_interface);
 
@@ -206,11 +206,11 @@ void Grasping::pick()
   // transform from `"panda_link8"` to the palm of the end effector.
   grasps[0].grasp_pose.header.frame_id = "panda_link0";
   tf2::Quaternion orientation;
-  orientation.setRPY(-tau / 4, -tau / 8, -tau / 4);
+  orientation.setRPY(- tau/2, 0, 0);
   grasps[0].grasp_pose.pose.orientation = tf2::toMsg(orientation);
-  grasps[0].grasp_pose.pose.position.x = 0.415;
-  grasps[0].grasp_pose.pose.position.y = 0;
-  grasps[0].grasp_pose.pose.position.z = 0.5;
+  grasps[0].grasp_pose.pose.position.x = -0.45;
+  grasps[0].grasp_pose.pose.position.y = 0.25;
+  grasps[0].grasp_pose.pose.position.z = 0.2;
 
   // Setting pre-grasp approach
   // ++++++++++++++++++++++++++
@@ -218,7 +218,7 @@ void Grasping::pick()
   grasps[0].pre_grasp_approach.direction.header.frame_id = "panda_link0";
   /* Direction is set as positive x axis */
   grasps[0].pre_grasp_approach.direction.vector.x = 1.0;
-  grasps[0].pre_grasp_approach.min_distance = 0.095;
+  grasps[0].pre_grasp_approach.min_distance = 0.0;
   grasps[0].pre_grasp_approach.desired_distance = 0.115;
 
   // Setting post-grasp retreat
@@ -243,9 +243,9 @@ void Grasping::pick()
 
   // BEGIN_SUB_TUTORIAL pick3
   // Set support surface as table1.
-  move_group.setSupportSurfaceName("table1");
+  move_group->setSupportSurfaceName("table1");
   // Call pick to pick up the object using the grasps given
-  move_group.pick("object", grasps);
+  move_group->pick("object", grasps);
 }
 
 void Grasping::place()
@@ -337,7 +337,7 @@ void Grasping::addCollisionObjects(moveit::planning_interface::PlanningSceneInte
   collision_objects[0].primitive_poses.resize(1);
   collision_objects[0].primitive_poses[0].position.x = 0.5;
   collision_objects[0].primitive_poses[0].position.y = 0;
-  collision_objects[0].primitive_poses[0].position.z = 0.2;
+  collision_objects[0].primitive_poses[0].position.z = -0.2;
   collision_objects[0].primitive_poses[0].orientation.w = 1.0;
   // END_SUB_TUTORIAL
 
@@ -383,7 +383,7 @@ void Grasping::addCollisionObjects(moveit::planning_interface::PlanningSceneInte
   collision_objects[2].primitive_poses.resize(1);
   collision_objects[2].primitive_poses[0].position.x = 0.5;
   collision_objects[2].primitive_poses[0].position.y = 0;
-  collision_objects[2].primitive_poses[0].position.z = 0.5;
+  collision_objects[2].primitive_poses[0].position.z = 2.5;
   collision_objects[2].primitive_poses[0].orientation.w = 1.0;
   // END_SUB_TUTORIAL
 
@@ -406,17 +406,17 @@ int main(int argc, char **argv)
     
     Grasping grasp_obj(nh);
     
-    // bool pre_grasp_success = grasp_obj.preGraspMovement();
+    bool pre_grasp_success = grasp_obj.preGraspMovement();
 
-    // if(!pre_grasp_success)
-    // {
-    //     ros::shutdown();
-    //     return 0;
-    // }
+    if(!pre_grasp_success)
+    {
+        ros::shutdown();
+        return 0;
+    }
 
     while(ros::ok())
     {
-        if(grasp_obj.detect_grasping_point == 0)
+        if(grasp_obj.detect_grasping_point == 2)
         {
             ros::WallDuration(1.0).sleep();
             grasp_obj.pick();
