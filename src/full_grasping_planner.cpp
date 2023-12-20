@@ -5,6 +5,10 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     base_pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_filtered", 10);
     pcl_sub = nh_ref.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 10, &Grasping::pointCloudCallback, this);
 
+    ft_sum_pub = nh_ref.advertise<std_msgs::Float32>("/joint_states_summed", 100);
+    ft_sum_abs_pub = nh_ref.advertise<std_msgs::Float32>("/joint_states_abs_summed", 100);
+    joint_sub = nh_ref.subscribe<sensor_msgs::JointState>("/joint_states", 100, &Grasping::jointStateCallback, this);
+
     PLANNING_GROUP = "panda_arm";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
 
@@ -56,6 +60,19 @@ void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
   posture.points[0].positions[1] = 0.000;
   posture.points[0].time_from_start = ros::Duration(30.0);
   // END_SUB_TUTORIAL
+}
+
+void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint_msg)
+{
+    std_msgs::Float32 sum_msg, sum_abs_msg;
+    for (int i = 0; i < 7; i++)
+    {
+        sum_msg.data += joint_msg->effort[i];
+        sum_abs_msg.data += std::abs(joint_msg->effort[i]);
+    }
+
+    ft_sum_pub.publish(sum_msg);
+    ft_sum_abs_pub.publish(sum_abs_msg);
 }
 
 //pre-grasp motion
@@ -416,11 +433,11 @@ int main(int argc, char **argv)
         if(grasp_obj.detect_grasping_point == 2)
         {
             ros::WallDuration(1.0).sleep();
-            grasp_obj.pick();
+            //grasp_obj.pick();
 
             // ros::WallDuration(1.0).sleep();
             // grasp_obj.place();
-            break;
+            //break;
         }
         else
         {

@@ -13,6 +13,8 @@
 #include <eigen_conversions/eigen_msg.h>
 
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/JointState.h>
+#include <std_msgs/Float32.h>
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -30,7 +32,10 @@ class Grasping
         tf2_ros::TransformListener tf_listener;
 
         ros::Publisher  base_pcl_pub;
+        ros::Publisher  ft_sum_pub;
+        ros::Publisher  ft_sum_abs_pub;
         ros::Subscriber pcl_sub;
+        ros::Subscriber joint_sub;
 
         const double tau = 2 * M_PI;
 
@@ -44,6 +49,7 @@ class Grasping
     public:
         Grasping(ros::NodeHandle& nh);
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
+        void jointStateCallback(const sensor_msgs::JointState::ConstPtr& state);
         bool preGraspMovement();
 
         void openGripper(trajectory_msgs::JointTrajectory& posture);
