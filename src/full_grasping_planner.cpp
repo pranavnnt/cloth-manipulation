@@ -11,6 +11,8 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     move_group->setMaxVelocityScalingFactor(0.1);
     move_group->setMaxAccelerationScalingFactor(0.1);
 
+    move_group->setPlannerId("BiTRRT");
+
     addCollisionObjects(planning_scene_interface);
 
     highest_blue_point.x = 0.415;
@@ -208,9 +210,9 @@ void Grasping::pick()
   tf2::Quaternion orientation;
   orientation.setRPY(- tau/2, 0, 0);
   grasps[0].grasp_pose.pose.orientation = tf2::toMsg(orientation);
-  grasps[0].grasp_pose.pose.position.x = -0.45;
-  grasps[0].grasp_pose.pose.position.y = 0.25;
-  grasps[0].grasp_pose.pose.position.z = 0.2;
+  grasps[0].grasp_pose.pose.position.x = -0.65;
+  grasps[0].grasp_pose.pose.position.y = 0.18;
+  grasps[0].grasp_pose.pose.position.z = 0.1;
 
   // Setting pre-grasp approach
   // ++++++++++++++++++++++++++
@@ -218,7 +220,7 @@ void Grasping::pick()
   grasps[0].pre_grasp_approach.direction.header.frame_id = "panda_link0";
   /* Direction is set as positive x axis */
   grasps[0].pre_grasp_approach.direction.vector.x = 1.0;
-  grasps[0].pre_grasp_approach.min_distance = 0.0;
+  grasps[0].pre_grasp_approach.min_distance = 0.06;
   grasps[0].pre_grasp_approach.desired_distance = 0.115;
 
   // Setting post-grasp retreat
@@ -275,8 +277,6 @@ void Grasping::place()
 
     ROS_INFO("Entered the place function (3)!!");
   
-    move_group->setPlannerId("geometric::RRTstar");
-    
     // Setting pre-place approach
     // ++++++++++++++++++++++++++
     /* Defined with respect to frame_id */
