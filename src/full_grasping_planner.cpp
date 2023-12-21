@@ -225,8 +225,8 @@ void Grasping::pick()
   orientation.setRPY(- tau/2, 0, 0);
   grasps[0].grasp_pose.pose.orientation = tf2::toMsg(orientation);
   grasps[0].grasp_pose.pose.position.x = -0.45;
-  grasps[0].grasp_pose.pose.position.y = 0.15;
-  grasps[0].grasp_pose.pose.position.z = 0.0;
+  grasps[0].grasp_pose.pose.position.y = 0.25;
+  grasps[0].grasp_pose.pose.position.z = 0.0 + 0.103;
 
   // Setting pre-grasp approach
   // ++++++++++++++++++++++++++
