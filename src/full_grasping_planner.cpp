@@ -425,9 +425,7 @@ int main(int argc, char **argv)
         {
             ros::WallDuration(1.0).sleep();
             grasp_obj.pick();
-
-            // ros::WallDuration(1.0).sleep();
-            // grasp_obj.place();
+            
             break;
         }
         else
