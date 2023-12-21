@@ -11,9 +11,6 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     PLANNING_GROUP = "panda_arm";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
 
-    move_group->setMaxVelocityScalingFactor(0.25);
-    move_group->setMaxAccelerationScalingFactor(0.25);
-
     move_group->setPlannerId("RRTstar");
 
     addCollisionObjects(planning_scene_interface);
@@ -73,13 +70,15 @@ void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint
 }
 
 //pre-grasp motion
-bool Grasping::preGraspMovement()
+void Grasping::preGraspMovement()
 {
     // Load Controller Configuration : loaded in main function
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
     
     // Set planner
     
+    move_group->setMaxVelocityScalingFactor(0.25);
+    move_group->setMaxAccelerationScalingFactor(0.25);
 
     // Set the joint target values
     std::vector<double> pre_grasp_target = {2.166085604918468, -1.3538849044637642, 0.33954661402785985, -2.9432076017150175, 0.4971391740110185, 1.9677453207013593, 0.12029780698200249};
@@ -102,12 +101,10 @@ bool Grasping::preGraspMovement()
         // Execute the plan
         move_group->execute(pre_grasp_plan);
         detect_grasping_point+= 2;
-        return true;
     }
     else
     {
         ROS_ERROR("Planning failed");
-        return false;
     }
 }
 
@@ -420,13 +417,7 @@ int main(int argc, char **argv)
     
     Grasping grasp_obj(nh);
     
-    bool pre_grasp_success = grasp_obj.preGraspMovement();
-
-    if(!pre_grasp_success)
-    {
-        ros::shutdown();
-        return 0;
-    }
+    grasp_obj.preGraspMovement();
 
     while(ros::ok())
     {
@@ -444,6 +435,8 @@ int main(int argc, char **argv)
             continue;
         }
     }
+
+    grasp_obj.preGraspMovement();
 
     ros::shutdown();
     return 0;

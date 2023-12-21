@@ -49,7 +49,7 @@ class Grasping
         Grasping(ros::NodeHandle& nh);
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
         void jointStateCallback(const sensor_msgs::JointState::ConstPtr& state);
-        bool preGraspMovement();
+        void preGraspMovement();
 
         void openGripper(trajectory_msgs::JointTrajectory& posture);
         void closedGripper(trajectory_msgs::JointTrajectory& posture);
