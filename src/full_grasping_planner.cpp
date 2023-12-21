@@ -11,11 +11,11 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     PLANNING_GROUP = "panda_arm";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
 
-    move_group->setPlannerId("RRTConnect");
+    move_group->setPlannerId("AnytimePathShortening");
 
     addCollisionObjects(planning_scene_interface);
 
-    move_group->setPlanningTime(90.0);
+    move_group->setPlanningTime(5.0);
 
     detect_grasping_point = 0;
     check_avg = false;
@@ -88,7 +88,7 @@ void Grasping::preGraspMovement()
     // Set the joint target
     move_group->setJointValueTarget(pre_grasp_target);
     move_group->setNumPlanningAttempts(5);
-    //move_group->setPlanningTime(5.0);
+    move_group->setPlanningTime(5.0);
 
     // Call the planner to compute the plan
     moveit::planning_interface::MoveGroupInterface::Plan pre_grasp_plan;
@@ -211,8 +211,9 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
 
 void Grasping::pick()
 {
-    move_group->setMaxVelocityScalingFactor(0.05);
-    move_group->setMaxAccelerationScalingFactor(0.05);
+    move_group->setPlanningTime(5.0);
+    move_group->setMaxVelocityScalingFactor(0.2);
+    move_group->setMaxAccelerationScalingFactor(0.2);
 
   std::vector<moveit_msgs::Grasp> grasps;
   grasps.resize(1);
@@ -264,7 +265,7 @@ void Grasping::pick()
   // Set support surface as table1.
   move_group->setSupportSurfaceName("table1");
   // Call pick to pick up the object using the grasps given
-  move_group->pick("object", grasps);
+  move_group->pick("object", grasp_pose);
 }
 
 void Grasping::place()
