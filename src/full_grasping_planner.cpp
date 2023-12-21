@@ -9,7 +9,12 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     joint_sub = nh_ref.subscribe<sensor_msgs::JointState>("/joint_states", 100, &Grasping::jointStateCallback, this);
 
     PLANNING_GROUP = "panda_arm";
+    GRIPPER_GROUP = "panda_hand";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
+    move_group_gripper.reset(new moveit::planning_interface::MoveGroupInterface(GRIPPER_GROUP));
+
+    open_gripper = {0.035,0.035};
+    closed_gripper = {0.005,0.005};
 
     move_group->setPlannerId("AnytimePathShortening");
 
@@ -78,6 +83,8 @@ void Grasping::preGraspMovement()
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
     
     // Set planner
+
+    ROS_INFO("Entered pregrasp!");
     
     move_group->setMaxVelocityScalingFactor(0.25);
     move_group->setMaxAccelerationScalingFactor(0.25);
@@ -166,6 +173,9 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 ROS_INFO_STREAM("Location of highest blue point is : x="<< highest_blue_point.x <<", y="<< highest_blue_point.y <<", z="<< highest_blue_point.z);
                 ROS_INFO_NAMED("tutorial", "End effector link: %s", move_group->getEndEffectorLink().c_str());
 
+                // move_group_gripper->setJointValueTarget(open_gripper);
+                // move_group_gripper->move();
+
                 geometry_msgs::Pose target_pose1;
 
                 tf2::Quaternion orientation;
@@ -176,8 +186,11 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 target_pose1.position.y = highest_blue_point.y;
                 target_pose1.position.z = highest_blue_point.z + 0.093;
 
-                move_group->setPoseTarget(target_pose1);
-                move_group->move();
+                // move_group->setPoseTarget(target_pose1);
+                // move_group->move();
+
+                // move_group_gripper->setJointValueTarget(closed_gripper);
+                // move_group_gripper->move();
 
                 detect_grasping_point++;
             }
@@ -404,7 +417,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "cloth_manipulation_node");
     ros::NodeHandle nh;
 
-    ros::AsyncSpinner spinner(2);
+    ros::AsyncSpinner spinner(1);
     spinner.start();
     
     Grasping grasp_obj(nh);

@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <vector>
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
@@ -41,9 +42,11 @@ class Grasping
         moveit_msgs::Grasp grasp_pose;
         pcl::PointXYZRGB highest_blue_point;
 
-        std::string PLANNING_GROUP;
-        std::unique_ptr<moveit::planning_interface::MoveGroupInterface> move_group;
+        std::string PLANNING_GROUP, GRIPPER_GROUP;
+        std::unique_ptr<moveit::planning_interface::MoveGroupInterface> move_group, move_group_gripper;
         moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+
+        std::vector<double> open_gripper, closed_gripper;
 
     public:
         Grasping(ros::NodeHandle& nh);
