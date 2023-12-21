@@ -236,7 +236,7 @@ void Grasping::pick()
   /* Defined with respect to frame_id */
   grasps[0].pre_grasp_approach.direction.header.frame_id = "panda_link0";
   /* Direction is set as positive x axis */
-  grasps[0].pre_grasp_approach.direction.vector.x = 1.0;
+  grasps[0].pre_grasp_approach.direction.vector.z = -1.0;
   grasps[0].pre_grasp_approach.min_distance = 0.06;
   grasps[0].pre_grasp_approach.desired_distance = 0.115;
 
