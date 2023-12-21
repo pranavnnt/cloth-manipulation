@@ -52,8 +52,8 @@ class Grasping
         Grasping(ros::NodeHandle& nh);
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
         void jointStateCallback(const sensor_msgs::JointState::ConstPtr& state);
-        void preGraspMovement();
-
+        void viewingMovement();
+        
         void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
 
         int detect_grasping_point;

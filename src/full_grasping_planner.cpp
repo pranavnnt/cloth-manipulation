@@ -48,7 +48,7 @@ void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint
 }
 
 //pre-grasp motion
-void Grasping::preGraspMovement()
+void Grasping::viewingMovement()
 {
     // Load Controller Configuration : loaded in main function
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
@@ -61,16 +61,16 @@ void Grasping::preGraspMovement()
     move_group->setMaxAccelerationScalingFactor(0.25);
 
     // Set the joint target values
-    std::vector<double> pre_grasp_target = {2.5633511613743347, -1.4671690645033286, 0.10065576503901413, -1.8405446478358485, 0.32594827116271596, 1.1669870363606438, 0.5493170644657479};
+    std::vector<double> viewing_target = {2.5633511613743347, -1.4671690645033286, 0.10065576503901413, -1.8405446478358485, 0.32594827116271596, 1.1669870363606438, 0.5493170644657479};
 
     // Set the joint target
-    move_group->setJointValueTarget(pre_grasp_target);
+    move_group->setJointValueTarget(viewing_target);
     move_group->setNumPlanningAttempts(5);
     move_group->setPlanningTime(5.0);
 
     // Call the planner to compute the plan
-    moveit::planning_interface::MoveGroupInterface::Plan pre_grasp_plan;
-    bool success = static_cast<bool>(move_group->plan(pre_grasp_plan));
+    moveit::planning_interface::MoveGroupInterface::Plan viewing_plan;
+    bool success = static_cast<bool>(move_group->plan(viewing_plan));
 
     //ros::Duration(5.0).sleep();
 
@@ -79,7 +79,7 @@ void Grasping::preGraspMovement()
         ROS_INFO("Pre-grasp plan successful. Executing the plan.");
 
         // Execute the plan
-        move_group->execute(pre_grasp_plan);
+        move_group->execute(viewing_plan);
         detect_grasping_point++;
     }
     else
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 
     double pre_mean, pre_std, post_mean, post_std;
     
-    grasp_obj.preGraspMovement();
+    grasp_obj.viewingMovement();
  
     while(ros::ok())
     {
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
         }
     }
 
-    grasp_obj.preGraspMovement();
+    grasp_obj.viewingMovement();
 
     while(ros::ok())
     {
