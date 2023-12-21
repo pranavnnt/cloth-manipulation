@@ -47,6 +47,7 @@ class Grasping
         moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
 
         std::vector<double> open_gripper, closed_gripper;
+        double pre_mean, pre_std, post_mean, post_std;
 
     public:
         Grasping(ros::NodeHandle& nh);

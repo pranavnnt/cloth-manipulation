@@ -14,7 +14,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     move_group_gripper.reset(new moveit::planning_interface::MoveGroupInterface(GRIPPER_GROUP));
 
     open_gripper = {0.035,0.035};
-    closed_gripper = {0.005,0.005};
+    closed_gripper = {0.002,0.002};
 
     move_group->setPlannerId("AnytimePathShortening");
 
@@ -25,12 +25,18 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
 
     detect_grasping_point = -10;
     check_avg = false;
+
+    pre_mean = 0;
+    pre_std = 0;
+    post_mean = 0;
+    post_std = 0;
 }
 
 void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint_msg)
 {
     if(!check_avg) 
         return;
+    ROS_INFO("Entered here!!!!!!!");
 
     if(ft_abs_sum_avg.size() == 25)
         ft_abs_sum_avg.clear();
@@ -130,8 +136,16 @@ void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
             move_group_gripper->setJointValueTarget(open_gripper);
             move_group_gripper->move();
 
-            //put ft_avg code here
-            ros::WallDuration(2.0).sleep();
+            check_avg = true;
+            ros::WallDuration(4.0).sleep();
+
+            //ft_avg code
+            std::vector<float> v1 = ft_abs_sum_avg;
+            double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
+            pre_mean = sum / v1.size();
+            double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
+            pre_std = std::sqrt(sq_sum / v1.size() - pre_mean * pre_mean);
+            ROS_INFO_STREAM("Pre-grasp ft values are " << pre_mean << " and " <<pre_std);
 
             move_group->setPoseTarget(grasp_pose);
 
@@ -150,6 +164,19 @@ void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
                 move_group->move();
 
                 //put ft_avg code here
+                check_avg = true;
+                ros::WallDuration(4.0).sleep();
+
+                //ft_avg code
+                std::vector<float> v1 = ft_abs_sum_avg;
+                double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
+                post_mean = sum / v1.size();
+
+                double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
+                post_std = std::sqrt(sq_sum / v1.size() - post_mean * post_mean);
+
+                ROS_INFO_STREAM("Pre-grasp ft values are " << pre_mean << " and " <<pre_std);
+                ROS_INFO_STREAM("Post-grasp ft values are " << post_mean << " and " <<post_std);
             }
             else
             {
@@ -264,7 +291,7 @@ int main(int argc, char **argv)
     
     Grasping grasp_obj(nh);
 
-    double pre_mean, pre_std, post_mean, post_std;
+    // double pre_mean, pre_std, post_mean, post_std;
     
     grasp_obj.viewingMovement();
  
@@ -279,16 +306,16 @@ int main(int argc, char **argv)
                 ROS_INFO("Here also");
                 
                 //pregrasp mean and stddev
-                std::vector<float> v1 = grasp_obj.ft_abs_sum_avg;
-                double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
-                pre_mean = sum / v1.size();
+                // std::vector<float> v1 = grasp_obj.ft_abs_sum_avg;
+                // double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
+                // pre_mean = sum / v1.size();
 
-                double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
-                pre_std = std::sqrt(sq_sum / v1.size() - pre_mean * pre_mean);
+                // double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
+                // pre_std = std::sqrt(sq_sum / v1.size() - pre_mean * pre_mean);
 
-                ROS_INFO_STREAM("here are " << pre_mean << " and " <<pre_std);
+                // ROS_INFO_STREAM("here are " << pre_mean << " and " <<pre_std);
             }
-            ROS_INFO_STREAM("The pre-grasp ft mean is " << pre_mean <<" while the std is " << pre_std);
+            // ROS_INFO_STREAM("The pre-grasp ft mean is " << pre_mean <<" while the std is " << pre_std);
             ros::WallDuration(1.0).sleep();
             //grasp_obj.pick();
 
@@ -304,23 +331,23 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {
-        if(grasp_obj.check_avg) continue;
-            else
-            {
-                //pregrasp mean and stddev
-                std::vector<float> v1 = grasp_obj.ft_abs_sum_avg;
-                double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
-                post_mean = sum / v1.size();
+        // if(grasp_obj.check_avg) continue;
+        //     else
+        //     {
+        //         //pregrasp mean and stddev
+        //         std::vector<float> v1 = grasp_obj.ft_abs_sum_avg;
+        //         double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
+        //         post_mean = sum / v1.size();
 
-                double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
-                post_std = std::sqrt(sq_sum / v1.size() - post_mean * post_mean);
+        //         double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
+        //         post_std = std::sqrt(sq_sum / v1.size() - post_mean * post_mean);
 
-                ROS_INFO_STREAM("here are " << pre_mean << " and " <<pre_std);
-                break;
-            }
+        //         ROS_INFO_STREAM("here are " << pre_mean << " and " <<pre_std);
+        //         break;
+        //     }
     }
-    ROS_INFO_STREAM("The pre-grasp ft mean is " << pre_mean <<" while the std is " << pre_std);
-    ROS_INFO_STREAM("The post-grasp ft mean is " << post_mean);
+    // ROS_INFO_STREAM("The pre-grasp ft mean is " << pre_mean <<" while the std is " << pre_std);
+    // ROS_INFO_STREAM("The post-grasp ft mean is " << post_mean);
 
     ros::shutdown();
     return 0;
