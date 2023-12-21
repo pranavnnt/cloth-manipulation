@@ -15,7 +15,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     move_group->setMaxVelocityScalingFactor(0.1);
     move_group->setMaxAccelerationScalingFactor(0.1);
 
-    move_group->setPlannerId("BiTRRT");
+    move_group->setPlannerId("RRTstar");
 
     addCollisionObjects(planning_scene_interface);
 
@@ -433,11 +433,11 @@ int main(int argc, char **argv)
         if(grasp_obj.detect_grasping_point == 2)
         {
             ros::WallDuration(1.0).sleep();
-            //grasp_obj.pick();
+            grasp_obj.pick();
 
             // ros::WallDuration(1.0).sleep();
             // grasp_obj.place();
-            //break;
+            break;
         }
         else
         {
