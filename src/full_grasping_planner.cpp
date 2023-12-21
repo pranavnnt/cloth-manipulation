@@ -12,10 +12,10 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     PLANNING_GROUP = "panda_arm";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
 
-    move_group->setMaxVelocityScalingFactor(0.1);
-    move_group->setMaxAccelerationScalingFactor(0.1);
+    move_group->setMaxVelocityScalingFactor(0.5);
+    move_group->setMaxAccelerationScalingFactor(0.5);
 
-    move_group->setPlannerId("BiTRRT");
+    move_group->setPlannerId("RRTstar");
 
     addCollisionObjects(planning_scene_interface);
 
@@ -23,7 +23,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     highest_blue_point.y = 0;
     highest_blue_point.z = 0.5;
 
-    move_group->setPlanningTime(15.0);
+    move_group->setPlanningTime(3.0);
 
     nh_ref.getParam("/highest_blue_point/x", highest_blue_point.x);
     nh_ref.getParam("/highest_blue_point/y", highest_blue_point.y);
@@ -214,6 +214,9 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
 
 void Grasping::pick()
 {
+    move_group->setMaxVelocityScalingFactor(0.05);
+    move_group->setMaxAccelerationScalingFactor(0.05);
+
   std::vector<moveit_msgs::Grasp> grasps;
   grasps.resize(1);
 
@@ -236,9 +239,9 @@ void Grasping::pick()
   /* Defined with respect to frame_id */
   grasps[0].pre_grasp_approach.direction.header.frame_id = "panda_link0";
   /* Direction is set as positive x axis */
-  grasps[0].pre_grasp_approach.direction.vector.x = 1.0;
-  grasps[0].pre_grasp_approach.min_distance = 0.06;
-  grasps[0].pre_grasp_approach.desired_distance = 0.115;
+  grasps[0].pre_grasp_approach.direction.vector.z = -1.0;
+  grasps[0].pre_grasp_approach.min_distance = 0.1;
+  grasps[0].pre_grasp_approach.desired_distance = 0.1;
 
   // Setting post-grasp retreat
   // ++++++++++++++++++++++++++
@@ -247,7 +250,7 @@ void Grasping::pick()
   /* Direction is set as positive z axis */
   grasps[0].post_grasp_retreat.direction.vector.z = 1.0;
   grasps[0].post_grasp_retreat.min_distance = 0.1;
-  grasps[0].post_grasp_retreat.desired_distance = 0.25;
+  grasps[0].post_grasp_retreat.desired_distance = 0.1;
 
   // Setting posture of eef before grasp
   // +++++++++++++++++++++++++++++++++++
@@ -415,7 +418,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "cloth_manipulation_node");
     ros::NodeHandle nh;
 
-    ros::AsyncSpinner spinner(1);
+    ros::AsyncSpinner spinner(3);
     spinner.start();
     
     Grasping grasp_obj(nh);
@@ -433,11 +436,11 @@ int main(int argc, char **argv)
         if(grasp_obj.detect_grasping_point == 2)
         {
             ros::WallDuration(1.0).sleep();
-            //grasp_obj.pick();
+            grasp_obj.pick();
 
             // ros::WallDuration(1.0).sleep();
             // grasp_obj.place();
-            //break;
+            break;
         }
         else
         {
