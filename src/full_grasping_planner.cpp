@@ -29,6 +29,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     nh_ref.getParam("/highest_blue_point/z", highest_blue_point.z);
 
     detect_grasping_point = 0;
+    check_moving_avg = false;
 }
 
 void Grasping::openGripper(trajectory_msgs::JointTrajectory& posture)
@@ -55,8 +56,8 @@ void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
   /* Set them as closed. */
   posture.points.resize(1);
   posture.points[0].positions.resize(2);
-  posture.points[0].positions[0] = 0.000;
-  posture.points[0].positions[1] = 0.000;
+  posture.points[0].positions[0] = 0.003;
+  posture.points[0].positions[1] = 0.003;
   posture.points[0].time_from_start = ros::Duration(30.0);
   // END_SUB_TUTORIAL
 }
@@ -69,16 +70,26 @@ void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint
         abs_sum_msg.data += std::abs(joint_msg->effort[i]);
     }
 
-    if(check_moving_avg == 1)
-    {
-
-    }
+    // if(check_moving_avg == true)
+    // {
+    //     if(ft_abs_sum_avg.size()==25)
+    //         ft_abs_sum_avg.clear();
+    //     else
+    //     {
+    //         ft_abs_sum_avg.push_back(abs_sum_msg.data);
+    //         if(ft_abs_sum_avg.size()==25)
+    //         {
+    //             ROS_INFO("DONE!");
+    //             check_moving_avg = false;
+    //         }
+    //     }
+    // }
 
     ft_abs_sum_pub.publish(abs_sum_msg);
 }
 
 //pre-grasp motion
-bool Grasping::preGraspMovement()
+void Grasping::preGraspMovement()
 {
     // Load Controller Configuration : loaded in main function
     //nh.setParam("/move_group/controller_list", "config/simple_moveit_controllers.yaml");
@@ -107,13 +118,12 @@ bool Grasping::preGraspMovement()
         // Execute the plan
         move_group->execute(pre_grasp_plan);
         detect_grasping_point+= 2;
-        return true;
     }
     else
     {
         ROS_ERROR("Planning failed");
-        return false;
     }
+    check_moving_avg = true;
 }
 
 //point cloud sub callback
@@ -424,32 +434,51 @@ int main(int argc, char **argv)
     spinner.start();
     
     Grasping grasp_obj(nh);
-    
-    bool pre_grasp_success = grasp_obj.preGraspMovement();
 
-    if(!pre_grasp_success)
-    {
-        ros::shutdown();
-        return 0;
-    }
+    double pre_grasp_mean, pre_grasp_stddev;
+    
+    grasp_obj.preGraspMovement();
+    ros::WallDuration(2.0).sleep();
 
     while(ros::ok())
     {
+        // if(grasp_obj.check_moving_avg == 1)
+        //     continue;
+        // else
+        // {
+        //     // pre_grasp_mean = std::accumulate(grasp_obj.ft_abs_sum_avg.begin(), grasp_obj.ft_abs_sum_avg.end(), 0.0) / grasp_obj.ft_abs_sum_avg.size();
+        //     // pre_grasp_stddev = std::sqrt(std::inner_product(grasp_obj.ft_abs_sum_avg.begin(), grasp_obj.ft_abs_sum_avg.end(), 
+        //     //                         grasp_obj.ft_abs_sum_avg.begin(), 0.0)/ grasp_obj.ft_abs_sum_avg.size() - pre_grasp_mean * pre_grasp_mean);
+        //     // ROS_INFO_STREAM("Pre-grasp mean is " << pre_grasp_mean << "while pre-grasp stdev is " << pre_grasp_stddev);
+        // }
+
         if(grasp_obj.detect_grasping_point == 2)
         {
             ros::WallDuration(1.0).sleep();
             grasp_obj.pick();
-
-            // ros::WallDuration(1.0).sleep();
-            // grasp_obj.place();
             break;
         }
         else
-        {
             continue;
-        }
     }
 
+    ros::WallDuration(2.0).sleep();
+
+    double post_grasp_mean;
+    grasp_obj.preGraspMovement();
+
+    while(ros::ok())
+    {
+        if(grasp_obj.check_moving_avg == 1)
+            continue;
+        else
+        {
+            // post_grasp_mean = std::accumulate(grasp_obj.ft_abs_sum_avg.begin(), grasp_obj.ft_abs_sum_avg.end(), 0.0) / grasp_obj.ft_abs_sum_avg.size();
+            // ROS_INFO_STREAM("Post-grasp mean is " << post_grasp_mean);
+            break;
+        }
+
+    }
     ros::shutdown();
     return 0;
 }
