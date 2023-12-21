@@ -53,6 +53,7 @@ class Grasping
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
         void jointStateCallback(const sensor_msgs::JointState::ConstPtr& state);
         void viewingMovement();
+        void planningRoutine(geometry_msgs::Pose grasp_pose);
         
         void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
 

@@ -98,7 +98,78 @@ void Grasping::viewingMovement()
         move_group_gripper->execute(gripper_plan);
     }
 }
-    
+
+void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
+{
+    move_group->setPoseTarget(grasp_pose);
+
+    moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
+    bool success = static_cast<bool>(move_group->plan(grasp_plan));
+
+    if(success)
+    {
+        ROS_INFO("Can plan path to grasp!");
+        ROS_INFO("But first, we will do a pre-grasp maneuver");
+
+        geometry_msgs::Pose pre_grasp_pose;
+        pre_grasp_pose.orientation = grasp_pose.orientation;
+        pre_grasp_pose.position.x = grasp_pose.position.x;
+        pre_grasp_pose.position.y = grasp_pose.position.y;
+        pre_grasp_pose.position.z = grasp_pose.position.z + 0.4;
+
+        move_group->setPoseTarget(pre_grasp_pose);
+
+        moveit::planning_interface::MoveGroupInterface::Plan pre_grasp_plan;
+        success = static_cast<bool>(move_group->plan(pre_grasp_plan));
+
+        if(success)
+        {
+            ROS_INFO("Can plan pre grasp pose too! Let's execute it.");
+            move_group->execute(pre_grasp_plan);
+
+            move_group_gripper->setJointValueTarget(open_gripper);
+            move_group_gripper->move();
+
+            //put ft_avg code here
+            ros::WallDuration(2.0).sleep();
+
+            move_group->setPoseTarget(grasp_pose);
+
+            moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
+            bool success = static_cast<bool>(move_group->plan(grasp_plan));
+            if(success)
+            {
+                ROS_INFO("Can still plan grasp pose! Let's execute it.");
+
+                move_group->execute(grasp_plan);
+
+                move_group_gripper->setJointValueTarget(closed_gripper);
+                move_group_gripper->move();
+
+                move_group->setPoseTarget(pre_grasp_pose);
+                move_group->move();
+
+                //put ft_avg code here
+            }
+            else
+            {
+                ROS_WARN("Cannot plan grasp pose! (3)");
+                return;
+            }
+        }
+        else
+        {
+            ROS_WARN("Cannot plan pre-grasp pose! (2)");
+            return;
+        }
+    }
+    else
+    {
+        ROS_WARN("Cannot plan grasp pose! (1)");
+        return;
+    }
+
+}
 
 //point cloud sub callback
 void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
@@ -140,7 +211,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 // ROS_INFO_STREAM("Red is " << (int)it.r << ", green is " << (int)it.g << ", blue is " << (int)it.b);
                 // ROS_INFO_STREAM("--------------------------------------------------------------------");
                 // Check if the point is blue (you may need to adjust these thresholds)
-                if ((int)it.b > 80 && ((int)it.b*1.0)/std::min((int)it.r,(int)it.g) > 5.0)
+                if ((int)it.b > 80 && ((int)it.b*1.0)/std::min((int)it.r,(int)it.g) > 4.0 && it.x > -0.7)
                 {   
                     // ROS_INFO("Found a blue point!!");
                     // Check if the point has higher z-coordinate than the current highest point
@@ -164,13 +235,9 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 
                 target_pose1.position.x = highest_blue_point.x;
                 target_pose1.position.y = highest_blue_point.y;
-                target_pose1.position.z = highest_blue_point.z + 0.103;
+                target_pose1.position.z = highest_blue_point.z + 0.093;
 
-                move_group->setPoseTarget(target_pose1);
-                move_group->move();
-
-                move_group_gripper->setJointValueTarget(closed_gripper);
-                move_group_gripper->move();
+                planningRoutine(target_pose1);
 
                 detect_grasping_point++;
             }
