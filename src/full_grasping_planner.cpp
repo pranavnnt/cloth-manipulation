@@ -11,11 +11,11 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     PLANNING_GROUP = "panda_arm";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
 
-    move_group->setPlannerId("RRTstar");
+    move_group->setPlannerId("RRTConnect");
 
     addCollisionObjects(planning_scene_interface);
 
-    move_group->setPlanningTime(15.0);
+    move_group->setPlanningTime(90.0);
 
     detect_grasping_point = 0;
     check_avg = false;
@@ -223,31 +223,31 @@ void Grasping::pick()
   // Make sure that when you set the grasp_pose, you are setting it to be the pose of the last link in
   // your manipulator which in this case would be `"panda_link8"` You will have to compensate for the
   // transform from `"panda_link8"` to the palm of the end effector.
-  grasps[0].grasp_pose.header.frame_id = "panda_link0";
-  tf2::Quaternion orientation;
-  orientation.setRPY(- tau/2, 0, 0);
-  grasps[0].grasp_pose.pose.orientation = tf2::toMsg(orientation);
-  grasps[0].grasp_pose.pose.position.x = -0.45;
-  grasps[0].grasp_pose.pose.position.y = 0.25;
-  grasps[0].grasp_pose.pose.position.z = 0.0 + 0.103;
+//   grasps[0].grasp_pose.header.frame_id = "panda_link0";
+//   tf2::Quaternion orientation;
+//   orientation.setRPY(- tau/2, 0, 0);
+//   grasps[0].grasp_pose.pose.orientation = tf2::toMsg(orientation);
+//   grasps[0].grasp_pose.pose.position.x = -0.45;
+//   grasps[0].grasp_pose.pose.position.y = 0.25;
+//   grasps[0].grasp_pose.pose.position.z = 0.0 + 0.103;
 
-  // Setting pre-grasp approach
-  // ++++++++++++++++++++++++++
-  /* Defined with respect to frame_id */
-  grasps[0].pre_grasp_approach.direction.header.frame_id = "panda_link0";
-  /* Direction is set as positive x axis */
-  grasps[0].pre_grasp_approach.direction.vector.z = -1.0;
-  grasps[0].pre_grasp_approach.min_distance = 0.06;
-  grasps[0].pre_grasp_approach.desired_distance = 0.115;
+//   // Setting pre-grasp approach
+//   // ++++++++++++++++++++++++++
+//   /* Defined with respect to frame_id */
+//   grasps[0].pre_grasp_approach.direction.header.frame_id = "panda_link0";
+//   /* Direction is set as positive x axis */
+//   grasps[0].pre_grasp_approach.direction.vector.z = -1.0;
+//   grasps[0].pre_grasp_approach.min_distance = 0.06;
+//   grasps[0].pre_grasp_approach.desired_distance = 0.115;
 
-  // Setting post-grasp retreat
-  // ++++++++++++++++++++++++++
-  /* Defined with respect to frame_id */
-  grasps[0].post_grasp_retreat.direction.header.frame_id = "panda_link0";
-  /* Direction is set as positive z axis */
-  grasps[0].post_grasp_retreat.direction.vector.z = 1.0;
-  grasps[0].post_grasp_retreat.min_distance = 0.1;
-  grasps[0].post_grasp_retreat.desired_distance = 0.25;
+//   // Setting post-grasp retreat
+//   // ++++++++++++++++++++++++++
+//   /* Defined with respect to frame_id */
+//   grasps[0].post_grasp_retreat.direction.header.frame_id = "panda_link0";
+//   /* Direction is set as positive z axis */
+//   grasps[0].post_grasp_retreat.direction.vector.z = 1.0;
+//   grasps[0].post_grasp_retreat.min_distance = 0.1;
+//   grasps[0].post_grasp_retreat.desired_distance = 0.25;
 
   // Setting posture of eef before grasp
   // +++++++++++++++++++++++++++++++++++
@@ -426,7 +426,7 @@ int main(int argc, char **argv)
  
     while(ros::ok())
     {
-        if(grasp_obj.detect_grasping_point == 1)
+        if(grasp_obj.detect_grasping_point == 2)
         {
             // ROS_INFO("Here");
             if(grasp_obj.check_avg) continue;
