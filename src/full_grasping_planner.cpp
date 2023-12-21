@@ -12,8 +12,8 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     PLANNING_GROUP = "panda_arm";
     move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
 
-    move_group->setMaxVelocityScalingFactor(0.1);
-    move_group->setMaxAccelerationScalingFactor(0.1);
+    move_group->setMaxVelocityScalingFactor(0.25);
+    move_group->setMaxAccelerationScalingFactor(0.25);
 
     move_group->setPlannerId("RRTstar");
 
@@ -214,6 +214,9 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
 
 void Grasping::pick()
 {
+    move_group->setMaxVelocityScalingFactor(0.05);
+    move_group->setMaxAccelerationScalingFactor(0.05);
+
   std::vector<moveit_msgs::Grasp> grasps;
   grasps.resize(1);
 
