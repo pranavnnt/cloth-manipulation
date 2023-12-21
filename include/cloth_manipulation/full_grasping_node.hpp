@@ -59,6 +59,7 @@ class Grasping
         void place();
 
         int detect_grasping_point;
-        
+        bool check_avg;
+        std::vector<float> ft_abs_sum_avg;
 };
 
