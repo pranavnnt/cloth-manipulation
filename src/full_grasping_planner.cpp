@@ -15,15 +15,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
 
     addCollisionObjects(planning_scene_interface);
 
-    highest_blue_point.x = 0.415;
-    highest_blue_point.y = 0;
-    highest_blue_point.z = 0.5;
-
     move_group->setPlanningTime(15.0);
-
-    nh_ref.getParam("/highest_blue_point/x", highest_blue_point.x);
-    nh_ref.getParam("/highest_blue_point/y", highest_blue_point.y);
-    nh_ref.getParam("/highest_blue_point/z", highest_blue_point.z);
 
     detect_grasping_point = 0;
     check_avg = false;
@@ -64,8 +56,6 @@ void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint
     if(!check_avg) 
         return;
 
-    ROS_INFO("Entered!");
-
     if(ft_abs_sum_avg.size() == 25)
         ft_abs_sum_avg.clear();
 
@@ -77,8 +67,6 @@ void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint
 
     ft_abs_sum_avg.push_back(abs_sum_msg.data);
     ft_abs_sum_pub.publish(abs_sum_msg);
-
-    ROS_INFO_STREAM("Size of vector is " << ft_abs_sum_avg.size());
 
     if(ft_abs_sum_avg.size() == 25) check_avg = false;
 }
@@ -114,7 +102,7 @@ void Grasping::preGraspMovement()
 
         // Execute the plan
         move_group->execute(pre_grasp_plan);
-        detect_grasping_point+= 2;
+        detect_grasping_point++;
     }
     else
     {
@@ -183,7 +171,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 grasp_pose.grasp_pose.pose.orientation = tf2::toMsg(orientation);
                 grasp_pose.grasp_pose.pose.position.x = highest_blue_point.x;
                 grasp_pose.grasp_pose.pose.position.y = highest_blue_point.y;
-                grasp_pose.grasp_pose.pose.position.z = highest_blue_point.z;
+                grasp_pose.grasp_pose.pose.position.z = highest_blue_point.z + 0.093;
   
                 // Setting pre-grasp approach
                 // ++++++++++++++++++++++++++
@@ -191,7 +179,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 grasp_pose.pre_grasp_approach.direction.header.frame_id = "panda_link0";
                 /* Direction is set as positive x axis */
                 grasp_pose.pre_grasp_approach.direction.vector.z = -1.0;
-                grasp_pose.pre_grasp_approach.min_distance = 0.095;
+                grasp_pose.pre_grasp_approach.min_distance = 0.085;
                 grasp_pose.pre_grasp_approach.desired_distance = 0.115;
   
                 // Setting post-grasp retreat
@@ -438,7 +426,7 @@ int main(int argc, char **argv)
  
     while(ros::ok())
     {
-        if(grasp_obj.detect_grasping_point == 2)
+        if(grasp_obj.detect_grasping_point == 1)
         {
             // ROS_INFO("Here");
             if(grasp_obj.check_avg) continue;
