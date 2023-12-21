@@ -111,7 +111,7 @@ void Grasping::viewingMovement()
 //point cloud sub callback
 void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
 {
-    ROS_INFO_STREAM(detect_grasping_point);
+    //ROS_INFO_STREAM(detect_grasping_point);
     if(detect_grasping_point == -9) 
     {
         ROS_INFO("Entered subscriber for finding grasping point!!");
@@ -376,26 +376,6 @@ int main(int argc, char **argv)
     }
 
     grasp_obj.viewingMovement();
-
-    while(ros::ok())
-    {
-        // if(grasp_obj.check_avg) continue;
-        //     else
-        //     {
-        //         //pregrasp mean and stddev
-        //         std::vector<float> v1 = grasp_obj.ft_abs_sum_avg;
-        //         double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
-        //         post_mean = sum / v1.size();
-
-        //         double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
-        //         post_std = std::sqrt(sq_sum / v1.size() - post_mean * post_mean);
-
-        //         ROS_INFO_STREAM("here are " << pre_mean << " and " <<pre_std);
-        //         break;
-        //     }
-    }
-    // ROS_INFO_STREAM("The pre-grasp ft mean is " << pre_mean <<" while the std is " << pre_std);
-    // ROS_INFO_STREAM("The post-grasp ft mean is " << post_mean);
 
     ros::shutdown();
     return 0;
