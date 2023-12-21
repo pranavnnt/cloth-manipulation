@@ -5,8 +5,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     base_pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_filtered", 10);
     pcl_sub = nh_ref.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 10, &Grasping::pointCloudCallback, this);
 
-    ft_sum_pub = nh_ref.advertise<std_msgs::Float32>("/joint_states_summed", 100);
-    ft_sum_abs_pub = nh_ref.advertise<std_msgs::Float32>("/joint_states_abs_summed", 100);
+    ft_abs_sum_pub = nh_ref.advertise<std_msgs::Float32>("/joint_states_abs_summed", 100);
     joint_sub = nh_ref.subscribe<sensor_msgs::JointState>("/joint_states", 100, &Grasping::jointStateCallback, this);
 
     PLANNING_GROUP = "panda_arm";
@@ -64,15 +63,18 @@ void Grasping::closedGripper(trajectory_msgs::JointTrajectory& posture)
 
 void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint_msg)
 {
-    std_msgs::Float32 sum_msg, sum_abs_msg;
+    std_msgs::Float32 abs_sum_msg;
     for (int i = 0; i < 7; i++)
     {
-        sum_msg.data += joint_msg->effort[i];
-        sum_abs_msg.data += std::abs(joint_msg->effort[i]);
+        abs_sum_msg.data += std::abs(joint_msg->effort[i]);
     }
 
-    ft_sum_pub.publish(sum_msg);
-    ft_sum_abs_pub.publish(sum_abs_msg);
+    if(check_moving_avg == 1)
+    {
+
+    }
+
+    ft_abs_sum_pub.publish(abs_sum_msg);
 }
 
 //pre-grasp motion

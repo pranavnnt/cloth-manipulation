@@ -32,8 +32,7 @@ class Grasping
         tf2_ros::TransformListener tf_listener;
 
         ros::Publisher  base_pcl_pub;
-        ros::Publisher  ft_sum_pub;
-        ros::Publisher  ft_sum_abs_pub;
+        ros::Publisher  ft_abs_sum_pub;
         ros::Subscriber pcl_sub;
         ros::Subscriber joint_sub;
 
