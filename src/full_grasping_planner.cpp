@@ -64,10 +64,10 @@ void Grasping::viewingMovement()
     
     // Set planner
 
-    ROS_INFO("Entered pregrasp!");
+    ROS_INFO("Entered viewing maneuver!");
     
-    move_group->setMaxVelocityScalingFactor(0.25);
-    move_group->setMaxAccelerationScalingFactor(0.25);
+    move_group->setMaxVelocityScalingFactor(0.2);
+    move_group->setMaxAccelerationScalingFactor(0.2);
 
     // Set the joint target values
     std::vector<double> viewing_target = {2.5633511613743347, -1.4671690645033286, 0.10065576503901413, -1.8405446478358485, 0.32594827116271596, 1.1669870363606438, 0.5493170644657479};
@@ -85,7 +85,7 @@ void Grasping::viewingMovement()
 
     if (success)
     {
-        ROS_INFO("Pre-grasp plan successful. Executing the plan.");
+        ROS_INFO("Viewing maneuver plan successful. Executing the plan.");
 
         // Execute the plan
         move_group->execute(viewing_plan);
