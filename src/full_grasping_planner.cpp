@@ -36,16 +36,18 @@ void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint
 {
     if(!check_avg) 
         return;
-    ROS_INFO("Entered here!!!!!!!");
+    // ROS_INFO("Entered here!!!!!!!");
 
-    if(ft_abs_sum_avg.size() == 25)
+    if(ft_abs_sum_avg.size() == 10)
         ft_abs_sum_avg.clear();
 
     std_msgs::Float32 sum_msg, abs_sum_msg;
-    for (int i = 0; i < 7; i++)
-    {
-        abs_sum_msg.data += std::abs(joint_msg->effort[i]);
-    }
+    // for (int i = 0; i < 7; i++)
+    // {
+    //     // abs_sum_msg.data += std::abs(joint_msg->effort[i]);
+    //      abs_sum_msg.data += (joint_msg->effort[i]);
+    // }
+    abs_sum_msg.data = joint_msg->effort[6];
 
     ft_abs_sum_avg.push_back(abs_sum_msg.data);
     ft_abs_sum_pub.publish(abs_sum_msg);
@@ -105,7 +107,7 @@ void Grasping::viewingMovement()
     }
 }
 
-void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
+int Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
 {
     move_group->setPoseTarget(grasp_pose);
 
@@ -136,8 +138,10 @@ void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
             move_group_gripper->setJointValueTarget(open_gripper);
             move_group_gripper->move();
 
+            ros::WallDuration(2.0).sleep();
+            ROS_INFO("Checking ft value");
             check_avg = true;
-            ros::WallDuration(4.0).sleep();
+            ros::WallDuration(2.0).sleep();
 
             //ft_avg code
             std::vector<float> v1 = ft_abs_sum_avg;
@@ -164,8 +168,10 @@ void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
                 move_group->move();
 
                 //put ft_avg code here
+                ros::WallDuration(2.0).sleep();
+                ROS_INFO("Checking ft value");
                 check_avg = true;
-                ros::WallDuration(4.0).sleep();
+                ros::WallDuration(2.0).sleep();
 
                 //ft_avg code
                 std::vector<float> v1 = ft_abs_sum_avg;
@@ -177,23 +183,34 @@ void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
 
                 ROS_INFO_STREAM("Pre-grasp ft values are " << pre_mean << " and " <<pre_std);
                 ROS_INFO_STREAM("Post-grasp ft values are " << post_mean << " and " <<post_std);
+
+                if(post_mean > (pre_mean + 3*pre_std) || post_mean < (pre_mean - 3*pre_std) )
+                {
+                    ROS_INFO("Congratulations, you have a blue napkin!");
+                    return 1;
+                }
+                else
+                {
+                    ROS_INFO("Failed the grasp, try again!");
+                    return 0;
+                }
             }
             else
             {
                 ROS_WARN("Cannot plan grasp pose! (3)");
-                return;
+                return 2;
             }
         }
         else
         {
             ROS_WARN("Cannot plan pre-grasp pose! (2)");
-            return;
+            return 2;
         }
     }
     else
     {
         ROS_WARN("Cannot plan grasp pose! (1)");
-        return;
+        return 2;
     }
 
 }
@@ -201,7 +218,7 @@ void Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
 //point cloud sub callback
 void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
 {
-    ROS_INFO_STREAM(detect_grasping_point);
+    // ROS_INFO_STREAM(detect_grasping_point);
     if(!(detect_grasping_point == -9)) return;
 
     ROS_INFO("Entered subscriber!!");
@@ -264,9 +281,26 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 target_pose1.position.y = highest_blue_point.y;
                 target_pose1.position.z = highest_blue_point.z + 0.093;
 
-                planningRoutine(target_pose1);
-
-                detect_grasping_point++;
+                bool grasp_success = planningRoutine(target_pose1);
+                if(grasp_success)
+                    detect_grasping_point++;
+                else
+                {
+                    grasp_success = planningRoutine(target_pose1);
+                    if(grasp_success)
+                        detect_grasping_point++;
+                    else
+                    {
+                        grasp_success = planningRoutine(target_pose1);
+                        if(grasp_success)
+                            detect_grasping_point++;
+                        else
+                        {
+                            ROS_INFO("It's not meant to be...");
+                            detect_grasping_point++;
+                        }
+                    }
+                }
             }
         }
         else
