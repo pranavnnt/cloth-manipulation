@@ -164,32 +164,20 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
             if (found_blue_point == true)
             {
                 ROS_INFO_STREAM("Location of highest blue point is : x="<< highest_blue_point.x <<", y="<< highest_blue_point.y <<", z="<< highest_blue_point.z);
-                
-                grasp_pose.grasp_pose.header.frame_id = "panda_link0";
+                ROS_INFO_NAMED("tutorial", "End effector link: %s", move_group->getEndEffectorLink().c_str());
+
+                geometry_msgs::Pose target_pose1;
+
                 tf2::Quaternion orientation;
                 orientation.setRPY(- tau/2, 0, 0);
-                grasp_pose.grasp_pose.pose.orientation = tf2::toMsg(orientation);
-                grasp_pose.grasp_pose.pose.position.x = highest_blue_point.x;
-                grasp_pose.grasp_pose.pose.position.y = highest_blue_point.y;
-                grasp_pose.grasp_pose.pose.position.z = highest_blue_point.z + 0.093;
-  
-                // Setting pre-grasp approach
-                // ++++++++++++++++++++++++++
-                /* Defined with respect to frame_id */
-                grasp_pose.pre_grasp_approach.direction.header.frame_id = "panda_link0";
-                /* Direction is set as positive x axis */
-                grasp_pose.pre_grasp_approach.direction.vector.z = -1.0;
-                grasp_pose.pre_grasp_approach.min_distance = 0.085;
-                grasp_pose.pre_grasp_approach.desired_distance = 0.115;
-  
-                // Setting post-grasp retreat
-                // ++++++++++++++++++++++++++
-                /* Defined with respect to frame_id */
-                grasp_pose.post_grasp_retreat.direction.header.frame_id = "panda_link0";
-                /* Direction is set as positive z axis */
-                grasp_pose.post_grasp_retreat.direction.vector.z = 1.0;
-                grasp_pose.post_grasp_retreat.min_distance = 0.1;
-                grasp_pose.post_grasp_retreat.desired_distance = 0.25;
+                target_pose1.orientation = tf2::toMsg(orientation);
+                
+                target_pose1.position.x = highest_blue_point.x;
+                target_pose1.position.y = highest_blue_point.y;
+                target_pose1.position.z = highest_blue_point.z + 0.093;
+
+                move_group->setPoseTarget(target_pose1);
+                move_group->move();
 
                 detect_grasping_point++;
             }
@@ -447,7 +435,7 @@ int main(int argc, char **argv)
             }
             ROS_INFO_STREAM("The pre-grasp ft mean is " << pre_mean <<" while the std is " << pre_std);
             ros::WallDuration(1.0).sleep();
-            grasp_obj.pick();
+            //grasp_obj.pick();
 
             break;
         }
