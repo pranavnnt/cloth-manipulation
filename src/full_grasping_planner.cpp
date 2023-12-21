@@ -30,6 +30,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     pre_std = 0;
     post_mean = 0;
     post_std = 0;
+    fault_detection;
 }
 
 void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint_msg)
@@ -107,7 +108,109 @@ void Grasping::viewingMovement()
     }
 }
 
-int Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
+//point cloud sub callback
+void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
+{
+    ROS_INFO_STREAM(detect_grasping_point);
+    if(detect_grasping_point == -9) 
+    {
+        ROS_INFO("Entered subscriber for finding grasping point!!");
+
+        //convert to pcl type
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+        pcl::fromROSMsg(*points_msg, *pcl_cloud);
+
+        //transform point cloud
+        try{
+            if (tf_buffer.canTransform("panda_link0", points_msg->header.frame_id, points_msg->header.stamp, ros::Duration(1.0)))
+            {
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+                pcl_ros::transformPointCloud("panda_link0", *pcl_cloud, *transformed_cloud, tf_buffer);
+
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+                pcl::VoxelGrid<pcl::PointXYZRGB> vox;
+                vox.setInputCloud(transformed_cloud);
+                vox.setLeafSize(0.005f, 0.005f, 0.005f);
+                vox.filter (*filtered_cloud);
+
+                filtered_cloud->header.frame_id = "panda_link0";    
+                base_pcl_pub.publish(filtered_cloud);
+                // ROS_INFO("Publish success!!");
+
+                // Initialize variables to store the highest blue point
+                bool found_blue_point = false;
+
+                // Use PCL iterators for optimized iteration
+                for(int nIndex = 0; nIndex < filtered_cloud->points.size(); nIndex++)
+                {
+                    auto it = filtered_cloud->points[nIndex];
+                    // ROS_INFO_STREAM("x is " << it.x << ", y is " << it.y << ", z is " << it.z);
+                    // ROS_INFO_STREAM("Red is " << (int)it.r << ", green is " << (int)it.g << ", blue is " << (int)it.b);
+                    // ROS_INFO_STREAM("--------------------------------------------------------------------");
+                    // Check if the point is blue (you may need to adjust these thresholds)
+                    if ((int)it.b > 80 && ((int)it.b*1.0)/std::min((int)it.r,(int)it.g) > 4.0 && it.x > -0.7)
+                    {   
+                        // ROS_INFO("Found a blue point!!");
+                        // Check if the point has higher z-coordinate than the current highest point
+                        if (!found_blue_point || it.z > highest_blue_point.z)
+                        {
+                            highest_blue_point = it;
+                            found_blue_point = true;
+                        }
+                    }
+                }
+                if (found_blue_point == true)
+                {
+                    ROS_INFO_STREAM("Location of highest blue point is : x="<< highest_blue_point.x <<", y="<< highest_blue_point.y <<", z="<< highest_blue_point.z);
+                    ROS_INFO_NAMED("tutorial", "End effector link: %s", move_group->getEndEffectorLink().c_str());
+
+                    tf2::Quaternion orientation;
+                    orientation.setRPY(- tau/2, 0, 0);
+                    grasp_pose.orientation = tf2::toMsg(orientation);
+
+                    grasp_pose.position.x = highest_blue_point.x;
+                    grasp_pose.position.y = highest_blue_point.y;
+                    grasp_pose.position.z = highest_blue_point.z + 0.093;
+
+                    detect_grasping_point++;
+                }
+            }
+            else
+            {
+                ROS_WARN("Transform not available for the given frame and time.");
+            }
+        }
+        catch (tf2::TransformException& ex)
+        {
+            ROS_WARN("Transform failed: %s", ex.what());
+        }
+    }
+    else if(detect_grasping_point == -7 || detect_grasping_point == -5 || detect_grasping_point == -3)
+    {
+        ROS_INFO("Entered subscriber for fault detection!");
+        
+        //convert to pcl type
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+        pcl::fromROSMsg(*points_msg, *pcl_cloud);
+        
+        // Use PCL iterators for optimized iteration
+        for(int nIndex = 0; nIndex < pcl_cloud->points.size(); nIndex++)
+        {
+            auto it = pcl_cloud->points[nIndex];
+            // ROS_INFO_STREAM("x is " << it.x << ", y is " << it.y << ", z is " << it.z);
+            // ROS_INFO_STREAM("Red is " << (int)it.r << ", green is " << (int)it.g << ", blue is " << (int)it.b);
+            // ROS_INFO_STREAM("--------------------------------------------------------------------");
+            // Check if the point is blue (you may need to adjust these thresholds)
+            if ((int)it.b > 80 && ((int)it.b*1.0)/std::min((int)it.r,(int)it.g) > 4.0 && it.z < -0.7 || (int)it.b > 80 && it.z < -0.5)
+            {   
+                ROS_INFO("Looks like the napkin is there!!!");
+                fault_detection = true;
+            }
+        }
+    }
+}
+
+int Grasping::planningRoutine()
 {
     move_group->setPoseTarget(grasp_pose);
 
@@ -167,6 +270,8 @@ int Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
                 move_group->setPoseTarget(pre_grasp_pose);
                 move_group->move();
 
+                detect_grasping_point++;
+
                 //put ft_avg code here
                 ros::WallDuration(2.0).sleep();
                 ROS_INFO("Checking ft value");
@@ -184,7 +289,7 @@ int Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
                 ROS_INFO_STREAM("Pre-grasp ft values are " << pre_mean << " and " <<pre_std);
                 ROS_INFO_STREAM("Post-grasp ft values are " << post_mean << " and " <<post_std);
 
-                if(post_mean > (pre_mean + 3*pre_std) || post_mean < (pre_mean - 3*pre_std) )
+                if(fault_detection)
                 {
                     ROS_INFO("Congratulations, you have a blue napkin!");
                     return 1;
@@ -212,106 +317,6 @@ int Grasping::planningRoutine(geometry_msgs::Pose grasp_pose)
         ROS_WARN("Cannot plan grasp pose! (1)");
         return 2;
     }
-
-}
-
-//point cloud sub callback
-void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
-{
-    // ROS_INFO_STREAM(detect_grasping_point);
-    if(!(detect_grasping_point == -9)) return;
-
-    ROS_INFO("Entered subscriber!!");
-        
-    //convert to pcl type
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-    pcl::fromROSMsg(*points_msg, *pcl_cloud);
-
-    //transform point cloud
-    try{
-        if (tf_buffer.canTransform("panda_link0", points_msg->header.frame_id, points_msg->header.stamp, ros::Duration(1.0)))
-        {
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-            pcl_ros::transformPointCloud("panda_link0", *pcl_cloud, *transformed_cloud, tf_buffer);
-
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-            pcl::VoxelGrid<pcl::PointXYZRGB> vox;
-            vox.setInputCloud(transformed_cloud);
-            vox.setLeafSize(0.005f, 0.005f, 0.005f);
-            vox.filter (*filtered_cloud);
-
-            filtered_cloud->header.frame_id = "panda_link0";    
-            base_pcl_pub.publish(filtered_cloud);
-            // ROS_INFO("Publish success!!");
-
-            // Initialize variables to store the highest blue point
-            bool found_blue_point = false;
-
-            // Use PCL iterators for optimized iteration
-            for(int nIndex = 0; nIndex < filtered_cloud->points.size(); nIndex++)
-            {
-                auto it = filtered_cloud->points[nIndex];
-                // ROS_INFO_STREAM("x is " << it.x << ", y is " << it.y << ", z is " << it.z);
-                // ROS_INFO_STREAM("Red is " << (int)it.r << ", green is " << (int)it.g << ", blue is " << (int)it.b);
-                // ROS_INFO_STREAM("--------------------------------------------------------------------");
-                // Check if the point is blue (you may need to adjust these thresholds)
-                if ((int)it.b > 80 && ((int)it.b*1.0)/std::min((int)it.r,(int)it.g) > 4.0 && it.x > -0.7)
-                {   
-                    // ROS_INFO("Found a blue point!!");
-                    // Check if the point has higher z-coordinate than the current highest point
-                    if (!found_blue_point || it.z > highest_blue_point.z)
-                    {
-                        highest_blue_point = it;
-                        found_blue_point = true;
-                    }
-                }
-            }
-            if (found_blue_point == true)
-            {
-                ROS_INFO_STREAM("Location of highest blue point is : x="<< highest_blue_point.x <<", y="<< highest_blue_point.y <<", z="<< highest_blue_point.z);
-                ROS_INFO_NAMED("tutorial", "End effector link: %s", move_group->getEndEffectorLink().c_str());
-
-                geometry_msgs::Pose target_pose1;
-
-                tf2::Quaternion orientation;
-                orientation.setRPY(- tau/2, 0, 0);
-                target_pose1.orientation = tf2::toMsg(orientation);
-                
-                target_pose1.position.x = highest_blue_point.x;
-                target_pose1.position.y = highest_blue_point.y;
-                target_pose1.position.z = highest_blue_point.z + 0.093;
-
-                bool grasp_success = planningRoutine(target_pose1);
-                if(grasp_success)
-                    detect_grasping_point++;
-                else
-                {
-                    grasp_success = planningRoutine(target_pose1);
-                    if(grasp_success)
-                        detect_grasping_point++;
-                    else
-                    {
-                        grasp_success = planningRoutine(target_pose1);
-                        if(grasp_success)
-                            detect_grasping_point++;
-                        else
-                        {
-                            ROS_INFO("It's not meant to be...");
-                            detect_grasping_point++;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            ROS_WARN("Transform not available for the given frame and time.");
-        }
-    }
-    catch (tf2::TransformException& ex)
-    {
-        ROS_WARN("Transform failed: %s", ex.what());
-    }
 }
 
 //main driver function
@@ -333,27 +338,36 @@ int main(int argc, char **argv)
     {
         if(grasp_obj.detect_grasping_point == -8)
         {
-            // ROS_INFO("Here");
-            if(grasp_obj.check_avg) continue;
+            bool grasp_success = grasp_obj.planningRoutine();
+            if(grasp_success)
+            {
+                grasp_obj.detect_grasping_point++;
+                break;
+            }
             else
             {
-                ROS_INFO("Here also");
-                
-                //pregrasp mean and stddev
-                // std::vector<float> v1 = grasp_obj.ft_abs_sum_avg;
-                // double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
-                // pre_mean = sum / v1.size();
-
-                // double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
-                // pre_std = std::sqrt(sq_sum / v1.size() - pre_mean * pre_mean);
-
-                // ROS_INFO_STREAM("here are " << pre_mean << " and " <<pre_std);
+                grasp_success = grasp_obj.planningRoutine();
+                if(grasp_success)
+                {
+                    grasp_obj.detect_grasping_point++;
+                    break;
+                }
+                else
+                {
+                    grasp_success = grasp_obj.planningRoutine();
+                    if(grasp_success)
+                    {
+                        grasp_obj.detect_grasping_point++;
+                        break;
+                    }
+                    else
+                    {
+                        ROS_INFO("It's not meant to be...");
+                        //detect_grasping_point++;
+                        break;
+                    }
+                }
             }
-            // ROS_INFO_STREAM("The pre-grasp ft mean is " << pre_mean <<" while the std is " << pre_std);
-            ros::WallDuration(1.0).sleep();
-            //grasp_obj.pick();
-
-            break;
         }
         else
         {

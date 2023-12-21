@@ -39,7 +39,7 @@ class Grasping
 
         const double tau = 2 * M_PI;
 
-        moveit_msgs::Grasp grasp_pose;
+        geometry_msgs::Pose grasp_pose;
         pcl::PointXYZRGB highest_blue_point;
 
         std::string PLANNING_GROUP, GRIPPER_GROUP;
@@ -54,13 +54,14 @@ class Grasping
         void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg);
         void jointStateCallback(const sensor_msgs::JointState::ConstPtr& state);
         void viewingMovement();
-        int planningRoutine(geometry_msgs::Pose grasp_pose); 
+        int planningRoutine(); 
         
         void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
 
         int detect_grasping_point;
         bool check_avg;
         std::vector<float> ft_abs_sum_avg;
+        bool fault_detection;
 };
 
 void Grasping::addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface)
