@@ -21,6 +21,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     addCollisionObjects(planning_scene_interface);
 
     move_group->setPlanningTime(5.0);
+    move_group_gripper->setPlanningTime(15.0);
 
     detect_grasping_point = -10;
     check_avg = false;
@@ -90,7 +91,7 @@ void Grasping::preGraspMovement()
     move_group->setMaxAccelerationScalingFactor(0.25);
 
     // Set the joint target values
-    std::vector<double> pre_grasp_target = {2.166085604918468, -1.3538849044637642, 0.33954661402785985, -2.9432076017150175, 0.4971391740110185, 1.9677453207013593, 0.12029780698200249};
+    std::vector<double> pre_grasp_target = {2.5633511613743347, -1.4671690645033286, 0.10065576503901413, -1.8405446478358485, 0.32594827116271596, 1.1669870363606438, 0.5493170644657479};
 
     // Set the joint target
     move_group->setJointValueTarget(pre_grasp_target);
@@ -116,7 +117,18 @@ void Grasping::preGraspMovement()
         ROS_ERROR("Planning failed");
     }
     check_avg = true;
+
+    move_group_gripper->setJointValueTarget(open_gripper);
+    // Call the planner to compute the plan
+    moveit::planning_interface::MoveGroupInterface::Plan gripper_plan;
+    success = static_cast<bool>(move_group_gripper->plan(gripper_plan));
+    if (success)
+    {
+        ROS_INFO("Gripper action successful. Executing the plan.");
+        move_group_gripper->execute(gripper_plan);
+    }
 }
+    
 
 //point cloud sub callback
 void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
@@ -174,9 +186,6 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 ROS_INFO_STREAM("Location of highest blue point is : x="<< highest_blue_point.x <<", y="<< highest_blue_point.y <<", z="<< highest_blue_point.z);
                 ROS_INFO_NAMED("tutorial", "End effector link: %s", move_group->getEndEffectorLink().c_str());
 
-                // move_group_gripper->setJointValueTarget(open_gripper);
-                // move_group_gripper->move();
-
                 geometry_msgs::Pose target_pose1;
 
                 tf2::Quaternion orientation;
@@ -185,13 +194,13 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
                 
                 target_pose1.position.x = highest_blue_point.x;
                 target_pose1.position.y = highest_blue_point.y;
-                target_pose1.position.z = highest_blue_point.z + 0.093;
+                target_pose1.position.z = highest_blue_point.z + 0.103;
 
-                // move_group->setPoseTarget(target_pose1);
-                // move_group->move();
+                move_group->setPoseTarget(target_pose1);
+                move_group->move();
 
-                // move_group_gripper->setJointValueTarget(closed_gripper);
-                // move_group_gripper->move();
+                move_group_gripper->setJointValueTarget(closed_gripper);
+                move_group_gripper->move();
 
                 detect_grasping_point++;
             }
@@ -418,7 +427,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "cloth_manipulation_node");
     ros::NodeHandle nh;
 
-    ros::AsyncSpinner spinner(1);
+    ros::AsyncSpinner spinner(3);
     spinner.start();
     
     Grasping grasp_obj(nh);
