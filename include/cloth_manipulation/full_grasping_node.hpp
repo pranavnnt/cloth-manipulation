@@ -54,12 +54,7 @@ class Grasping
         void jointStateCallback(const sensor_msgs::JointState::ConstPtr& state);
         void preGraspMovement();
 
-        void openGripper(trajectory_msgs::JointTrajectory& posture);
-        void closedGripper(trajectory_msgs::JointTrajectory& posture);
         void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
-
-        void pick();
-        void place();
 
         int detect_grasping_point;
         bool check_avg;
