@@ -22,7 +22,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
 
     move_group->setPlanningTime(5.0);
 
-    detect_grasping_point = 0;
+    detect_grasping_point = -10;
     check_avg = false;
 }
 
@@ -121,7 +121,8 @@ void Grasping::preGraspMovement()
 //point cloud sub callback
 void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points_msg)
 {
-    if(!(detect_grasping_point == 1)) return;
+    ROS_INFO_STREAM(detect_grasping_point);
+    if(!(detect_grasping_point == -9)) return;
 
     ROS_INFO("Entered subscriber!!");
         
@@ -428,7 +429,7 @@ int main(int argc, char **argv)
  
     while(ros::ok())
     {
-        if(grasp_obj.detect_grasping_point == 2)
+        if(grasp_obj.detect_grasping_point == -8)
         {
             // ROS_INFO("Here");
             if(grasp_obj.check_avg) continue;
