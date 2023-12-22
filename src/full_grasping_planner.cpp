@@ -21,7 +21,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     addCollisionObjects(planning_scene_interface);
 
     move_group->setPlanningTime(5.0);
-    move_group_gripper->setPlanningTime(15.0);
+    move_group_gripper->setPlanningTime(5.0);
 
     detect_grasping_point = -10;
     check_avg = false;
@@ -114,7 +114,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
     //ROS_INFO_STREAM(detect_grasping_point);
     if(detect_grasping_point == -9) 
     {
-        ROS_INFO("Entered subscriber for finding grasping point!!");
+        //ROS_INFO("Entered subscriber for finding grasping point!!");
 
         //convert to pcl type
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -170,7 +170,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
 
                     grasp_pose.position.x = highest_blue_point.x;
                     grasp_pose.position.y = highest_blue_point.y;
-                    grasp_pose.position.z = highest_blue_point.z + 0.093;
+                    grasp_pose.position.z = highest_blue_point.z + 0.098;
 
                     detect_grasping_point++;
                 }
@@ -187,7 +187,7 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
     }
     else if(detect_grasping_point == -7 || detect_grasping_point == -5 || detect_grasping_point == -3)
     {
-        ROS_INFO("Entered subscriber for fault detection!");
+        //ROS_INFO("Entered subscriber for fault detection!");
         
         //convert to pcl type
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
