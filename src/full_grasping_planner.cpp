@@ -30,7 +30,7 @@ Grasping::Grasping(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
     pre_std = 0;
     post_mean = 0;
     post_std = 0;
-    fault_detection;
+    fault_detection = false;
 }
 
 void Grasping::jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint_msg)
@@ -187,21 +187,27 @@ void Grasping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& points
     }
     else if(detect_grasping_point == -7 || detect_grasping_point == -5 || detect_grasping_point == -3)
     {
-        //ROS_INFO("Entered subscriber for fault detection!");
+        // ROS_INFO("Entered subscriber for fault detection!");
         
         //convert to pcl type
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
         pcl::fromROSMsg(*points_msg, *pcl_cloud);
+
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+        pcl::VoxelGrid<pcl::PointXYZRGB> vox;
+        vox.setInputCloud(pcl_cloud);
+        vox.setLeafSize(0.005f, 0.005f, 0.005f);
+        vox.filter (*filtered_cloud);
         
         // Use PCL iterators for optimized iteration
-        for(int nIndex = 0; nIndex < pcl_cloud->points.size(); nIndex++)
+        for(int nIndex = 0; nIndex < filtered_cloud->points.size(); nIndex++)
         {
-            auto it = pcl_cloud->points[nIndex];
+            auto it = filtered_cloud->points[nIndex];
             // ROS_INFO_STREAM("x is " << it.x << ", y is " << it.y << ", z is " << it.z);
             // ROS_INFO_STREAM("Red is " << (int)it.r << ", green is " << (int)it.g << ", blue is " << (int)it.b);
             // ROS_INFO_STREAM("--------------------------------------------------------------------");
             // Check if the point is blue (you may need to adjust these thresholds)
-            if ((int)it.b > 80 && ((int)it.b*1.0)/std::min((int)it.r,(int)it.g) > 4.0 && it.z < -0.7 || (int)it.b > 80 && it.z < -0.5)
+            if ((it.z < 0.25 && it.z > 0) || (it.z > -0.25 && it.z < 0) && (int)it.b > 80)
             {   
                 ROS_INFO("Looks like the napkin is there!!!");
                 fault_detection = true;
@@ -241,19 +247,6 @@ int Grasping::planningRoutine()
             move_group_gripper->setJointValueTarget(open_gripper);
             move_group_gripper->move();
 
-            ros::WallDuration(2.0).sleep();
-            ROS_INFO("Checking ft value");
-            check_avg = true;
-            ros::WallDuration(2.0).sleep();
-
-            //ft_avg code
-            std::vector<float> v1 = ft_abs_sum_avg;
-            double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
-            pre_mean = sum / v1.size();
-            double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
-            pre_std = std::sqrt(sq_sum / v1.size() - pre_mean * pre_mean);
-            ROS_INFO_STREAM("Pre-grasp ft values are " << pre_mean << " and " <<pre_std);
-
             move_group->setPoseTarget(grasp_pose);
 
             moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
@@ -272,26 +265,12 @@ int Grasping::planningRoutine()
 
                 detect_grasping_point++;
 
-                //put ft_avg code here
                 ros::WallDuration(2.0).sleep();
-                ROS_INFO("Checking ft value");
-                check_avg = true;
-                ros::WallDuration(2.0).sleep();
-
-                //ft_avg code
-                std::vector<float> v1 = ft_abs_sum_avg;
-                double sum = std::accumulate(v1.begin(), v1.end(), 0.0);
-                post_mean = sum / v1.size();
-
-                double sq_sum = std::inner_product(v1.begin(), v1.end(), v1.begin(), 0.0);
-                post_std = std::sqrt(sq_sum / v1.size() - post_mean * post_mean);
-
-                ROS_INFO_STREAM("Pre-grasp ft values are " << pre_mean << " and " <<pre_std);
-                ROS_INFO_STREAM("Post-grasp ft values are " << post_mean << " and " <<post_std);
 
                 if(fault_detection)
                 {
                     ROS_INFO("Congratulations, you have a blue napkin!");
+                    detect_grasping_point = 10;
                     return 1;
                 }
                 else
