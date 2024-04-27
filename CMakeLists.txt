@@ -94,12 +94,20 @@ target_link_libraries(joint_space_planner ${catkin_LIBRARIES})
 add_executable(full_grasping_planner src/full_grasping_planner.cpp)
 target_link_libraries(full_grasping_planner ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
+add_executable(color_mask src/color_mask.cpp)
+target_link_libraries(color_mask ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 install(TARGETS joint_space_planner
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(TARGETS full_grasping_planner
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+install(TARGETS color_mask
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 # install(DIRECTORY include/${PROJECT_NAME}/
 #   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 # )
