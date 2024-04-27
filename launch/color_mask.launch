@@ -1,0 +1,8 @@
+<launch>
+
+  <!-- Launch MoveIt MoveGroup node -->
+  <node name="color_mask_node" pkg="cloth_manipulation" type="color_mask" output="screen">
+    <remap from="/camera/depth/color/points" to="/camera2/depth/color/points" />
+  </node>
+
+</launch>
