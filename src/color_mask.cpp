@@ -48,7 +48,7 @@ void ColorMask::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& point
             pcl::PointXYZRGBtoXYZHSV(filtered_cloud->points[nIndex], hsv_cloud->points[nIndex]);
 
             // if)hsv_cloud->points[nIndex].h << " S: " << hsv_cloud->points[nIndex].s << " V: " << hsv_cloud->points[nIndex].v << std::endl;
-            if(hsv_cloud->points[nIndex].h > 0 && hsv_cloud->points[nIndex].h < 60 && hsv_cloud->points[nIndex].v > 0.5 && hsv_cloud->points[nIndex].s > 0.6)
+            if(hsv_cloud->points[nIndex].h > 5 && hsv_cloud->points[nIndex].h < 45 && hsv_cloud->points[nIndex].v > 0.5 && hsv_cloud->points[nIndex].s > 0.15)
             {
                 new_cloud->points.push_back(filtered_cloud->points[nIndex]);
             }
