@@ -24,7 +24,7 @@ class ColorMask
         tf2_ros::Buffer tf_buffer;
         tf2_ros::TransformListener tf_listener;
 
-        ros::Publisher  pcl_pub;
+        ros::Publisher  hsv_pcl_pub, color_mask_pub;
         ros::Subscriber pcl_sub;
 
         const double tau = 2 * M_PI;

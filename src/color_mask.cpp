@@ -2,7 +2,8 @@
 
 ColorMask::ColorMask(ros::NodeHandle& nh_ref) : nh(nh_ref), tf_listener(tf_buffer)
 {
-    pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_hsv", 10);
+    hsv_pcl_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_hsv", 10);
+    color_mask_pub = nh_ref.advertise<sensor_msgs::PointCloud2>("/camera/depth/color/points_masked", 10);
     pcl_sub = nh_ref.subscribe<sensor_msgs::PointCloud2>("/camera/depth/color/points", 10, &ColorMask::pointCloudCallback, this);
 
     //move_group.setPlanningTime(45.0);
@@ -30,17 +31,27 @@ void ColorMask::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& point
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
         pcl::VoxelGrid<pcl::PointXYZRGB> vox;
         vox.setInputCloud(pcl_cloud);
-        vox.setLeafSize(0.01f, 0.01f, 0.01f);
-        vox.filter(*filtered_cloud);
+        // vox.setLeafSize(0.01f, 0.01f, 0.01f);
+        // vox.filter(*filtered_cloud);
+        *filtered_cloud = *pcl_cloud;
 
         pcl::PointCloud<pcl::PointXYZHSV>::Ptr hsv_cloud(new pcl::PointCloud<pcl::PointXYZHSV>);
         hsv_cloud->points.resize(filtered_cloud->size());
 
-        hsv_cloud->header.frame_id = pcl_cloud->header.frame_id;   
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr new_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+        hsv_cloud->header.frame_id = pcl_cloud->header.frame_id;
+        new_cloud->header.frame_id = pcl_cloud->header.frame_id;     
 
         for(int nIndex = 0; nIndex < filtered_cloud->points.size(); nIndex++)
         {
             pcl::PointXYZRGBtoXYZHSV(filtered_cloud->points[nIndex], hsv_cloud->points[nIndex]);
+
+            // if)hsv_cloud->points[nIndex].h << " S: " << hsv_cloud->points[nIndex].s << " V: " << hsv_cloud->points[nIndex].v << std::endl;
+            if(hsv_cloud->points[nIndex].h > 0 && hsv_cloud->points[nIndex].h < 60 && hsv_cloud->points[nIndex].v > 0.5 && hsv_cloud->points[nIndex].s > 0.6)
+            {
+                new_cloud->points.push_back(filtered_cloud->points[nIndex]);
+            }
 
             // double rgb_mag = std::inner_product(rgb.begin(), rgb.end(), rgb.begin(), 0);
 
@@ -80,7 +91,8 @@ void ColorMask::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& point
 
                  
         }
-    pcl_pub.publish(hsv_cloud); 
+    hsv_pcl_pub.publish(hsv_cloud); 
+    color_mask_pub.publish(new_cloud); 
     // float max_height = -6.0;
     }
 
