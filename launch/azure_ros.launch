@@ -1,0 +1,7 @@
+<launch>
+
+  <!-- Launch MoveIt MoveGroup node -->
+  <node name="azure_ros_node" pkg="cloth_manipulation" type="azure_ros.py" output="screen">
+  </node>
+
+</launch>

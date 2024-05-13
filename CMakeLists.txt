@@ -118,3 +118,8 @@ install(DIRECTORY config
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
+catkin_install_python(
+ PROGRAMS scripts/azure_ros.py
+ DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
