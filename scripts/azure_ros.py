@@ -11,7 +11,9 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, CameraInfo
 from visualization_msgs.msg import Marker, MarkerArray
 from scipy.spatial.transform import Rotation
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
+import tf2_ros
+import tf2_geometry_msgs
 
 class PixelSelector:
     def __init__(self):
@@ -60,6 +62,9 @@ class RealSenseROS:
         ts_top.enable_reset = True
 
         self.point_visualization_pub = rospy.Publisher('point_visualization_marker_array', MarkerArray, queue_size=10)
+
+        self.tf_buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+        self.listener = tf2_ros.TransformListener(self.tf_buffer)
 
         time.sleep(1.0)
 
@@ -186,7 +191,7 @@ if __name__ == "__main__":
         pixel = pixel_selector.run(color_data)
         print("Pixel: ",pixel)
 
-        valid, world_coordinate = rs_ros.pixel2World(info_data, pixel[0][0], pixel[0][1], depth_data)
+        valid, world_coordinate = rs_ros.pixel2World(info_data, pixel[0][0], pixel[0][1], depth_data, header)
         
         if valid:
             point_transform = np.eye(4)
@@ -194,6 +199,24 @@ if __name__ == "__main__":
         
             rs_ros.visualize_point(point_transform)
             print("World Coordinate: ", world_coordinate)
+
+            pose = PoseStamped()
+
+            pose.pose = rs_ros.get_pose_msg_from_transform(point_transform)
+            pose.header.frame_id = "rgb_camera_link"
+            pose.header.stamp = rospy.Time.now()
+
+            try:
+                transform = rs_ros.tf_buffer.lookup_transform("panda_link0",
+                                           "rgb_camera_link",
+                                           rospy.Time.now(),
+                                           rospy.Duration(1.0))
+                pose_transformed = tf2_geometry_msgs.do_transform_pose(pose, transform)
+                print("Successfully transformed. The coordinates in ", pose_transformed.header.frame_id, " is: ", [pose_transformed.pose.position.x, pose_transformed.pose.position.y, pose_transformed.pose.position.z])
+                
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.TransformException) as ex:
+                rospy.logerr('Transformation error occurred: %s', ex)
+
         else:
             print("Pixel selected has invalid depth :(")
 
