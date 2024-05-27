@@ -119,7 +119,7 @@ install(DIRECTORY config
 )
 
 catkin_install_python(
- PROGRAMS scripts/azure_ros.py
+ PROGRAMS scripts/azure_ros.py scripts/realsense_ros.py
  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
