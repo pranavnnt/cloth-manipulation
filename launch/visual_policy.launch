@@ -1,0 +1,7 @@
+<launch>
+
+  <!-- Launch MoveIt MoveGroup node -->
+  <node name="realsense_ros_node" pkg="cloth_manipulation" type="visual_policy.py" output="screen">
+  </node>
+
+</launch>
