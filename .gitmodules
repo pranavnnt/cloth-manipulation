@@ -1,0 +1,3 @@
+[submodule "scripts/franka_control"]
+	path = scripts/franka_control
+	url = git@github.com:pranavnnt/franka_control.git
