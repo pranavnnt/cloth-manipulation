@@ -1,0 +1,15 @@
+<launch>
+  
+     <node pkg="topic_tools" type="throttle" name="throttle_realsense_camera_raw"
+          args="messages /camera/color/image_raw 4.0 /throttle/camera/color/image_raw" />
+
+     <node pkg="topic_tools" type="throttle" name="throttle_realsense_camera_info"
+          args="messages /camera/color/camera_info 4.0 /throttle/camera/color/camera_info" />
+
+     <node pkg="topic_tools" type="throttle" name="throttle_kinect_camera_raw"
+          args="messages /rgb/image_raw 4.0 /throttle/rgb/image_raw" />
+
+     <node pkg="topic_tools" type="throttle" name="throttle_kinect_camera_info"
+          args="messages /rgb/camera_info 4.0 /throttle/rgb/camera_info" />
+
+</launch>
