@@ -42,7 +42,7 @@ class PixelSelector:
                 break
         return self.clicks
 
-class AzureROS:
+class VisualFeedback_Azure:
     def __init__(self):
         self.bridge = CvBridge()
 
@@ -208,8 +208,8 @@ class AzureROS:
         return pose_policy
 
 if __name__ == "__main__":
-    rospy.init_node('AzureROS')
-    azure_ros = AzureROS()
+    rospy.init_node('VisualFeedback_Azure')
+    azure_ros = VisualFeedback_Azure()
     pixel_selector = PixelSelector()
     
     while True:        

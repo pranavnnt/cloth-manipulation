@@ -42,7 +42,7 @@ class PixelSelector:
                 break
         return self.clicks
 
-class RealSenseROS:
+class VisualFeedback_RS:
     def __init__(self):
         self.bridge = CvBridge()
 
@@ -208,8 +208,8 @@ class RealSenseROS:
         return pose_policy
 
 if __name__ == "__main__":
-    rospy.init_node('RealSenseROS')
-    rs_ros = RealSenseROS()
+    rospy.init_node('VisualFeedback_RS')
+    rs_ros = VisualFeedback_RS()
     pixel_selector = PixelSelector()
     
     while True:    
