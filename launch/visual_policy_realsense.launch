@@ -1,7 +1,0 @@
-<launch>
-
-  <!-- Launch MoveIt MoveGroup node -->
-  <node name="visual_policy_node" pkg="cloth_manipulation" type="visual_policy_realsense.py" output="screen">
-  </node>
-
-</launch>

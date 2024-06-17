@@ -1,0 +1,7 @@
+<launch>
+
+  <!-- Launch MoveIt MoveGroup node -->
+  <node name="visual_feedback_node" pkg="cloth_manipulation" type="visual_feedback_azure.py" output="screen">
+  </node>
+
+</launch>
