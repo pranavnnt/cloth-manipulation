@@ -30,7 +30,7 @@ def ArgumentParser():
     args = parser.parse_args()
     return args
 
-class ParameterizedActions():
+class ParameterizedAction():
 
     def __init__(self, args):
         self.args = args
@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     args = ArgumentParser()
     if args.manual == True:
-        pa = ParameterizedActions(args)
+        pa = ParameterizedAction(args)
         pa.init_pose_setup()
         pa.execute_action()
     elif args.auto == True:
