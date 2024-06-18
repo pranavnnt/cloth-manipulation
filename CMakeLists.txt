@@ -88,21 +88,8 @@ catkin_package(
 include_directories(${catkin_INCLUDE_DIRS})
 include_directories(include)
 
-add_executable(joint_space_planner src/joint_space_planner.cpp)
-target_link_libraries(joint_space_planner ${catkin_LIBRARIES})
-
-add_executable(full_grasping_planner src/full_grasping_planner.cpp)
-target_link_libraries(full_grasping_planner ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-
 add_executable(color_mask src/color_mask.cpp)
 target_link_libraries(color_mask ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-
-install(TARGETS joint_space_planner
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(TARGETS full_grasping_planner
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 install(TARGETS color_mask
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -119,7 +106,10 @@ install(DIRECTORY config
 )
 
 catkin_install_python(
- PROGRAMS scripts/azure_ros.py scripts/realsense_ros.py scripts/visual_feedback_realsense.py scripts/visual_feedback_azure.py
+ PROGRAMS scripts/azure_ros.py 
+          scripts/realsense_ros.py
+          scripts/visual_feedback_realsense.py 
+          scripts/visual_feedback_azure.py
  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
