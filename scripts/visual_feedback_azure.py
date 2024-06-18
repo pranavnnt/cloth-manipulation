@@ -61,7 +61,7 @@ class VisualFeedback_Azure:
         ts_top.registerCallback(self.rgbdCallback)
         ts_top.enable_reset = True
 
-        self.point_visualization_pub = rospy.Publisher('point_visualization_marker_array', MarkerArray, queue_size=10)
+        self.point_visualization_pub = rospy.Publisher('/visual_feedback/azure/push_vector', MarkerArray, queue_size=10)
 
         self.tf_buffer = tf2_ros.Buffer(rospy.Duration(100.0))
         self.listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -198,7 +198,7 @@ class VisualFeedback_Azure:
         pose_policy = Pose()
         pose_policy.position.x = pose_init.position.x
         pose_policy.position.y = pose_init.position.y
-        pose_policy.position.z = 0.25
+        pose_policy.position.z = (pose_init.position.z + pose_fin.position.z) / 2
 
         pose_policy.orientation.x = quat[0]
         pose_policy.orientation.y = quat[1]
