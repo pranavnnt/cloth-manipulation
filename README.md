@@ -1,2 +1,18 @@
 # cloth-manipulation
-catkin build -DCATKIN_ENABLE_TESTING=False -DCMAKE_BUILD_TYPE=Release -DFranka_DIR:PATH=/home/emprise/libraries/libfranka/build
+
+This is a repository for cloth manipulation using the Franka Emika Panda. 
+
+## for color mask
+
+in terminal 1 : 
+```sh
+    cd ~/workspace/dressing_ws
+    source devel/setup.bash 
+    roslaunch realsense2_camera rs_camera.launch filters:=pointcloud
+```
+in terminal 2 : 
+```sh
+    cd ~/workspace/dressing_ws
+    source devel/setup.bash 
+    roslaunch cloth_manipulation color_mask.launch
+```
