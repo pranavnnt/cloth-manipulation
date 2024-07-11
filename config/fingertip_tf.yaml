@@ -1,6 +1,6 @@
 link8_leftfinger_tip:
   translation: [0.025, 0.025, 0.103]
-  rotation: [0.271, 0.653, -0.653, -0.271]
+  rotation: [0.924, -0.383, 0.000, 0.000]
 link8_rightfinger_tip:
   translation: [-0.025, -0.025, 0.103]
-  rotation: [-0.653, 0.271, -0.271, 0.653]
+  rotation: [0.924, -0.383, 0.000, 0.000]
