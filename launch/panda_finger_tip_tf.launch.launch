@@ -1,9 +1,0 @@
-<launch>
-  <!-- The rpy in the comment uses the extrinsic XYZ convention, which is the same as is used in a URDF. See
-       http://wiki.ros.org/geometry2/RotationMethods and https://en.wikipedia.org/wiki/Euler_angles for more info. -->
-  <!-- xyz="0.0574582 -0.0479482 -0.0123066" rpy="0.155843 -0.0446561 1.53025" -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="leftfinger_tip_broadcaster"
-      args="0 0.035 0    0 -0.7071068 0.7071068 0 panda_NE panda_leftfinger_tip" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="rightfinger_tip_broadcaster"
-      args="0 -0.035 0   -0.7071068 0 0 0.7071068  panda_NE panda_rightfinger_tip" />
-</launch>
