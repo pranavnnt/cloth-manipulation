@@ -20,6 +20,8 @@ from franka_control.util import HOMES
 from franka_control.util import R, T
 from franka_control.pd_control import PDControl
 
+from polymetis import RobotInterface
+
 import torchcontrol as toco
 
 def ArgumentParser():
@@ -48,6 +50,27 @@ class ParameterizedAction():
 
         self.init_pos, self.init_quat, self.T_home = None, None, None
 
+    def __init__(self, name, init_pos=None, init_quat=None):
+        self.name = name[:-4]
+        gain_type = (
+            "stiff" if self.name.endswith("insertion") or self.name.endswith("zip") else "default"
+        )
+
+        file_path = Path(__file__).resolve().parent.parent / "data"
+
+        data = np.load(file_path / name, allow_pickle=True)
+        self.rel_pose_hist, self.hz = data["traj_pose"], data["hz"]
+        self.env_play = FrankaEnv(home=HOMES["cloth"], hz=self.hz, gain_type=gain_type, camera=False)
+        self.env_rec = FrankaEnv(home=HOMES["cloth"], hz=self.hz, gain_type="record", camera=False)
+
+        if init_pos is not None and init_quat is not None:
+            print(init_pos)
+            print(init_quat)
+            self.init_pos, self.init_quat = init_pos, init_quat
+            self.T_home = None
+        else:
+            self.init_pos, self.init_quat, self.T_home = None, None, None
+
     def init_pose_setup(self):
 
         # This function sets up the initial pose of the robot manually. Call if args.init is False.
@@ -68,6 +91,27 @@ class ParameterizedAction():
         self.T_home = T.from_rot_xyz(
                         rotation=R.from_quat(self.init_quat),
                         translation=self.init_pos)
+        
+    def go_home(self):
+
+        #This function sends the robot to the initial pose
+
+        robot = RobotInterface(
+            ip_address="192.168.2.121",
+        )
+
+        user_in = "r"
+        while user_in == "r":
+            user_in = input("Ready to go home. Press 'Enter'")
+
+        robot.move_to_ee_pose(position=self.init_pos, orientation=self.init_quat, time_to_go=10.0)
+
+        del robot
+    
+    def get_ee_pose(self):
+            
+        # This function returns the current end effector pose of the robot
+        return self.env_play.robot.get_ee_pose()
     
     def execute_action(self):
     
@@ -89,6 +133,10 @@ class ParameterizedAction():
             robot_model=self.env_play.robot.robot_model,
         )
 
+        #home eef frame
+        self.T_home = T.from_rot_xyz(
+                        rotation=R.from_quat(self.init_quat),
+                        translation=self.init_pos)
 
         # Send policy
         print("\nRunning PD policy...")
