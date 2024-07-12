@@ -25,13 +25,13 @@ class PixelSelector:
     def mouse_callback(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDBLCLK:
             self.clicks.append([x, y])
-            cv2.circle(self.img, (x, y), 3, (200, 0, 0), -1)
+            cv2.circle(self.img, (x, y), 15, (200, 0, 0), -1)
             cv2.imshow("pixel_selector", self.img)
 
     def run(self, img, num_clicks=2):
         self.load_image(img)
         self.clicks = []
-        cv2.namedWindow('pixel_selector')
+        cv2.namedWindow('pixel_selector', cv2.WINDOW_KEEPRATIO)
         cv2.setMouseCallback('pixel_selector', self.mouse_callback)
         while True:
             cv2.imshow("pixel_selector", self.img)
@@ -73,7 +73,7 @@ class VisualFeedback_Azure:
         try:
             # Convert your ROS Image message to OpenCV2
             rgb_image = self.bridge.imgmsg_to_cv2(rgb_image_msg, "bgr8")
-            depth_image = self.bridge.imgmsg_to_cv2(depth_image_msg, "16UC1")
+            depth_image = self.bridge.imgmsg_to_cv2(depth_image_msg, "32FC1")
         except CvBridgeError as e:
             print(e)
 
@@ -93,6 +93,8 @@ class VisualFeedback_Azure:
             return False, None
 
         depth = depth_image[image_y, image_x]
+
+        depth = depth * 1000
 
         if math.isnan(depth) or depth < 50 or depth > 2000:
 
@@ -189,7 +191,7 @@ class VisualFeedback_Azure:
 
         roll = 0
         pitch = 0
-        yaw = math.atan2(pose_fin.position.y - pose_init.position.y, pose_fin.position.x - pose_init.position.x)
+        yaw = math.atan2(pose_fin.position.y - pose_init.position.y, pose_fin.position.x - pose_init.position.x) - math.pi/2
 
         print("Yaw (deg): ", yaw * 180 / math.pi)
 
