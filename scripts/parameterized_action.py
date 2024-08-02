@@ -20,6 +20,8 @@ from franka_control.util import HOMES
 from franka_control.util import R, T
 from franka_control.pd_control import PDControl
 
+from scipy.spatial.transform import Rotation
+
 from polymetis import RobotInterface
 
 import torchcontrol as toco
@@ -105,6 +107,22 @@ class ParameterizedAction():
             user_in = input("Ready to go home. Press 'Enter'")
 
         robot.move_to_ee_pose(position=self.init_pos, orientation=self.init_quat, time_to_go=10.0)
+
+        del robot
+
+    def move_aside(self):
+
+        #This function moves the robot to the side
+
+        robot = RobotInterface(
+            ip_address="192.168.2.121",
+        )
+
+        pose, quat = self.get_ee_pose()
+
+        pose = pose + torch.Tensor([-0.1, -0.1, -0.02])
+
+        robot.move_to_ee_pose(position=pose, time_to_go=5.0)
 
         del robot
     
