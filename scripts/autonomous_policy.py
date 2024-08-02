@@ -6,6 +6,8 @@
 from parameterized_action import ParameterizedAction
 from visualization_msgs.msg import Marker, MarkerArray
 
+from scipy.spatial.transform import Rotation
+
 from franka_control.util import R, T
 
 import yaml
@@ -38,18 +40,47 @@ class AutonomousPolicy:
     def add_safety_constraint(self, pose):
 
         safe_pose = pose
-        safe_pose.position.z = pose.position.z + 0.015
-        safe_pose.position.y = pose.position.y + 0.06
+        safe_pose.position.z = pose.position.z + 0.009
+        safe_pose.position.y = pose.position.y + 0.051
         safe_pose.position.x = pose.position.x + 0.025
 
-
         return safe_pose
+
+    def rotate(self,pose):
+
+        #rotate quaternion by -5 degrees around X axis
+
+        rotated_pose = pose
+
+        ori = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+        quat = Rotation.from_quat(ori)
+
+        print(pose)
+
+        print(quat.as_quat())
+
+        quat_rot_1 = Rotation.from_euler('x', 1.5, degrees=True)
+
+        quat_rot = Rotation.from_euler('y', 45, degrees=True) * quat_rot_1
+
+        final_quat = quat_rot * quat
+
+        rotated_pose.orientation.x = final_quat.as_quat()[0]
+        rotated_pose.orientation.y = final_quat.as_quat()[1]
+        rotated_pose.orientation.z = final_quat.as_quat()[2]
+        rotated_pose.orientation.w = final_quat.as_quat()[3]
+
+        print("Rotated!!")
+        print(final_quat.as_quat())
+
+        return rotated_pose
 
     def vector_viz_callback(self, msg):
 
         finger_pose = msg.markers[0].pose
 
-        finger_safe_pose = self.add_safety_constraint(finger_pose)
+        finger_safe_pose_init = self.add_safety_constraint(finger_pose)
+        finger_safe_pose = self.rotate(finger_safe_pose_init)
 
         finger_init_pos = torch.Tensor([finger_safe_pose.position.x, finger_safe_pose.position.y, finger_safe_pose.position.z])
         finger_init_quat = torch.Tensor([finger_safe_pose.orientation.x, finger_safe_pose.orientation.y, finger_safe_pose.orientation.z, finger_safe_pose.orientation.w])        
@@ -99,6 +130,9 @@ class AutonomousPolicy:
         print("Executing action")
         # execute the action
         pa.execute_action()
+
+        print("Moving aside")
+        pa.move_aside()
 
 if __name__ == "__main__":
     rospy.init_node('autonomous_policy', anonymous=True)
